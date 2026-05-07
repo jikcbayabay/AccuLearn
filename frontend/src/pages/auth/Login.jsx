@@ -1,74 +1,128 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import useAuth from '../../hooks/useAuth.js';
-import Button from '../../components/common/Button.jsx';
+// Login page
 
-export default function Login() {
+import React from 'react';
+import Icon from '../../components/common/Icons.jsx';
+import { Button, Input, Spinner } from '../../components/common/UI.jsx';
+import { Logo } from '../../components/layout/Shell.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
+
+const LoginPage = ({ onLogin }) => {
   const { login } = useAuth();
-  const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [email, setEmail] = React.useState('student1@acculearn.test');
+  const [password, setPassword] = React.useState('password123');
+  const [loading, setLoading] = React.useState(false);
+  const [err, setErr] = React.useState('');
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError(null);
-    setSubmitting(true);
+  const quick = [
+    { label: 'Sign in as Student', email: 'student1@acculearn.test', password: 'password123', tone: 'student' },
+    { label: 'Sign in as Teacher', email: 'teacher@acculearn.test',  password: 'password123', tone: 'teacher' },
+    { label: 'Sign in as Admin',   email: 'admin@acculearn.test',    password: 'password123', tone: 'admin' },
+  ];
+
+  const submit = async (e, presetEmail, presetPassword) => {
+    e && e.preventDefault();
+    setErr('');
+    setLoading(true);
+    const useEmail    = presetEmail    || email;
+    const usePassword = presetPassword || password;
     try {
-      const { user } = await login(email, password);
-      navigate(`/${user.role}`);
-    } catch (err) {
-      setError(err.message || 'Login failed');
+      const user = await login(useEmail, usePassword);
+      onLogin(user);
+    } catch (error) {
+      setErr('Invalid email or password. Please try again.');
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm rounded-lg border bg-white p-6 shadow-sm"
-      >
-        <h1 className="text-xl font-semibold">Sign in to AccuLearn</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Enter your credentials to continue.
-        </p>
+    <div className="min-h-screen flex">
+      {/* Left brand panel */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden text-white"
+           style={{ background: 'linear-gradient(140deg, #1d4870 0%, #24598a 55%, #2f6fa6 100%)' }}>
+        <div className="absolute inset-0 opacity-[0.10]"
+             style={{ backgroundImage:
+              'radial-gradient(circle at 20% 30%, white 0 1px, transparent 1px), radial-gradient(circle at 70% 70%, white 0 1px, transparent 1px)',
+              backgroundSize: '36px 36px, 60px 60px' }}/>
+        <div className="relative p-12 flex flex-col w-full">
+          <Logo light/>
+          <div className="mt-auto max-w-md">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/15 text-[11.5px] uppercase tracking-wider font-semibold">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-green"/> Mastery-based learning
+            </div>
+            <h2 className="text-4xl font-semibold mt-5 leading-tight tracking-tight">
+              Learn at your pace.<br/>Master every competency.
+            </h2>
+            <p className="text-white/75 mt-4 text-[15px] leading-relaxed">
+              AccuLearn adapts to each Grade 11 ABM student with personalized learning
+              paths, AI-guided feedback, and clear signals on what to study next.
+            </p>
 
-        <div className="mt-6 space-y-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-md border px-3 py-2 text-sm"
-              required
-            />
+            <div className="grid grid-cols-3 gap-3 mt-10">
+              {[
+                { k: 'Adaptive', v: 'LP1–LP4', sub: 'paths' },
+                { k: 'AI', v: 'Feedback', sub: 'on every quiz' },
+                { k: 'Mastery', v: 'Tracked', sub: 'per competency' },
+              ].map((s,i) => (
+                <div key={i} className="bg-white/10 backdrop-blur-sm rounded-xl p-3.5 border border-white/10">
+                  <div className="text-[10.5px] uppercase tracking-wider text-white/60 font-semibold">{s.k}</div>
+                  <div className="text-[15px] font-semibold mt-1">{s.v}</div>
+                  <div className="text-[11.5px] text-white/60">{s.sub}</div>
+                </div>
+              ))}
+            </div>
           </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-md border px-3 py-2 text-sm"
-              required
-            />
+          <div className="text-[12px] text-white/50 mt-12">© 2026 AccuLearn · A prototype for ABM Senior High</div>
+        </div>
+      </div>
+
+      {/* Right form */}
+      <div className="flex-1 flex items-center justify-center p-6 bg-white">
+        <div className="w-full max-w-sm">
+          <div className="lg:hidden mb-8"><Logo/></div>
+          <h1 className="text-[26px] font-semibold tracking-tight text-ink-900">Welcome back</h1>
+          <p className="text-ink-500 mt-1">Sign in to continue your learning journey.</p>
+
+          <form onSubmit={submit} className="mt-7 space-y-4">
+            <Input label="Email" type="email" required
+                   icon={<Icon.Mail size={16}/>}
+                   value={email} onChange={e => setEmail(e.target.value)}
+                   placeholder="you@acculearn.test"/>
+            <Input label="Password" type="password" required
+                   icon={<Icon.Lock size={16}/>}
+                   value={password} onChange={e => setPassword(e.target.value)}
+                   placeholder="••••••••"/>
+            <div className="flex items-center justify-between text-[13px]">
+              <label className="flex items-center gap-2 text-ink-700">
+                <input type="checkbox" defaultChecked className="rounded text-brand-blue"/> Remember me
+              </label>
+              <a className="text-brand-blue font-medium hover:underline cursor-pointer">Forgot password?</a>
+            </div>
+            {err && <div className="text-[13px] text-mastery-needs">{err}</div>}
+            <Button type="submit" variant="primary" className="w-full justify-center" size="lg" disabled={loading}>
+              {loading ? <Spinner size={16}/> : null}
+              {loading ? 'Signing in…' : 'Sign in'}
+            </Button>
+          </form>
+
+          <div className="mt-7">
+            <div className="flex items-center gap-3 text-[12px] text-ink-500">
+              <span className="flex-1 h-px bg-ink-200"/> Demo accounts <span className="flex-1 h-px bg-ink-200"/>
+            </div>
+            <div className="grid gap-2 mt-3">
+              {quick.map(q => (
+                <button key={q.email} onClick={(e) => submit(e, q.email, q.password)} disabled={loading}
+                  className="flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl border border-ink-200 hover:border-brand-blue hover:bg-brand-blue-50/40 transition text-left disabled:opacity-50">
+                  <span className="text-[13px] text-ink-700">{q.label}</span>
+                  <span className="text-[11.5px] text-ink-500">{q.email}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-
-        {error && (
-          <p className="mt-3 text-sm text-red-600" role="alert">
-            {error}
-          </p>
-        )}
-
-        <Button type="submit" className="mt-6 w-full" disabled={submitting}>
-          {submitting ? 'Signing in...' : 'Sign In'}
-        </Button>
-      </form>
+      </div>
     </div>
   );
-}
+};
+
+export default LoginPage;

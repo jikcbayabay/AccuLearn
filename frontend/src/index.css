@@ -1,3 +1,33 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html, body { font-family: 'Inter', system-ui, sans-serif; color: #1f2937; background: #f7f8fa; }
+  body { font-feature-settings: "cv11","ss01"; -webkit-font-smoothing: antialiased; }
+}
+
+@layer utilities {
+  .tnum { font-variant-numeric: tabular-nums; }
+  .ph-stripes { background-image: repeating-linear-gradient(135deg, #eef1f5 0 8px, #e6eaef 8px 16px); }
+  .fade-in { animation: fade .25s ease both; }
+  .ring-brand:focus { outline: none; box-shadow: 0 0 0 3px rgba(36,89,138,.25); }
+}
+
+@keyframes fade {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb {
+  background: #d6dbe3;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #b8bfc9;
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}

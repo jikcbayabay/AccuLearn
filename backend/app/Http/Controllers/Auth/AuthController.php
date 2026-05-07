@@ -4,29 +4,52 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
     public function login(LoginRequest $request): JsonResponse
     {
-        // TODO: validate credentials, issue Sanctum token, return user payload.
+        $credentials = $request->validated();
+
+        $user = User::where('email', $credentials['email'])->first();
+
+        if (! $user || ! Hash::check($credentials['password'], $user->password)) {
+            return response()->json(['message' => 'Invalid credentials'], 401);
+        }
+
+        $token = $user->createToken('api')->plainTextToken;
+
         return response()->json([
-            'user'  => null,
-            'token' => null,
+            'user' => [
+                'id'    => $user->id,
+                'name'  => $user->name,
+                'email' => $user->email,
+                'role'  => $user->role instanceof \BackedEnum ? $user->role->value : $user->role,
+            ],
+            'token' => $token,
+        ]);
+    }
+
+    public function me(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'id'    => $user->id,
+            'name'  => $user->name,
+            'email' => $user->email,
+            'role'  => $user->role instanceof \BackedEnum ? $user->role->value : $user->role,
         ]);
     }
 
     public function logout(Request $request): JsonResponse
     {
-        // TODO: revoke current Sanctum token.
-        return response()->json(['success' => true]);
-    }
+        $request->user()->currentAccessToken()->delete();
 
-    public function me(Request $request): JsonResponse
-    {
-        // TODO: return $request->user() once auth is wired up.
-        return response()->json(['user' => null]);
+        return response()->json(['message' => 'Logged out successfully']);
     }
 }

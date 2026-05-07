@@ -15,7 +15,7 @@ class AssessmentController extends Controller
         return response()->json($assessment);
     }
 
-    public function submit(AssessmentSubmitRequest $request, Assessment $assessment): JsonResponse
+    public function submit(AssessmentSubmitRequest $request): JsonResponse
     {
         // TODO:
         //   1. Persist the attempt.

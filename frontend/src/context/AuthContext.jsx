@@ -1,23 +1,37 @@
-import { createContext, useState, useEffect } from 'react';
-import authService from '../services/authService.js';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import * as authService from '../services/authService.js';
 
-export const AuthContext = createContext(null);
+const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Restore session from localStorage on mount
   useEffect(() => {
-    authService
-      .getCurrentUser()
-      .then((u) => setUser(u))
-      .finally(() => setLoading(false));
+    try {
+      const stored = localStorage.getItem('acculearn_user');
+      if (stored) setUser(JSON.parse(stored));
+    } catch {
+      // ignore malformed JSON
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Listen for 401s from the axios interceptor
+  useEffect(() => {
+    const handler = () => {
+      setUser(null);
+    };
+    window.addEventListener('acculearn:unauthorized', handler);
+    return () => window.removeEventListener('acculearn:unauthorized', handler);
   }, []);
 
   const login = async (email, password) => {
-    const result = await authService.login(email, password);
-    setUser(result.user);
-    return result;
+    const u = await authService.login(email, password);
+    setUser(u);
+    return u;
   };
 
   const logout = async () => {
@@ -25,9 +39,20 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  const value = {
+    user,
+    isAuthenticated: !!user,
+    isLoading,
+    login,
+    logout,
+    setUser, // exposed so role-switcher demo can swap users without going through API
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>');
+  return ctx;
 }

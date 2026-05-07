@@ -1,32 +1,22 @@
-// MOCK: Replace with real axios calls when backend is running.
-import { USER_ROLES } from '../utils/constants.js';
+import api from './api.js';
 
-const FAKE_USER = {
-  id: 1,
-  name: 'Maria Santos',
-  email: 'maria.santos@example.com',
-  role: USER_ROLES.STUDENT,
-  moodleUserId: null,
+export const login = async (email, password) => {
+  const res = await api.post('/auth/login', { email, password });
+  localStorage.setItem('acculearn_token', res.data.token);
+  localStorage.setItem('acculearn_user', JSON.stringify(res.data.user));
+  return res.data.user;
 };
 
-const authService = {
-  login: (email, _password) => {
-    const role =
-      email?.startsWith('admin')
-        ? USER_ROLES.ADMIN
-        : email?.startsWith('teacher')
-          ? USER_ROLES.TEACHER
-          : USER_ROLES.STUDENT;
-
-    return Promise.resolve({
-      user: { ...FAKE_USER, email: email || FAKE_USER.email, role },
-      token: 'mock-token-abc123',
-    });
-  },
-
-  logout: () => Promise.resolve({ success: true }),
-
-  getCurrentUser: () => Promise.resolve(null),
+export const me = async () => {
+  const res = await api.get('/auth/me');
+  return res.data;
 };
 
-export default authService;
+export const logout = async () => {
+  try {
+    await api.post('/auth/logout');
+  } finally {
+    localStorage.removeItem('acculearn_token');
+    localStorage.removeItem('acculearn_user');
+  }
+};

@@ -2,50 +2,50 @@
 
 namespace App\Services\Mastery;
 
-use App\Enums\LearningPath;
-
 class LearningPathResolver
 {
-    /**
-     * High-confidence GI threshold above which we treat correctness as guessing.
-     */
-    public const HIGH_GI_THRESHOLD = 0.30;
+    public const MASTERY_THRESHOLD     = 85;
+    public const DEVELOPING_THRESHOLD  = 75;
+    public const HIGH_GI_THRESHOLD     = 0.5;
+    public const HIGH_CMI_THRESHOLD    = 0.3;
 
     /**
      * Resolve which Learning Path the student should be placed on.
      *
-     * Decision tree:
-     *   if prerequisiteMet === false   → LP1 (PREREQUISITE_REVIEW)
-     *   else if masteryScore < 75      → LP2 (GUIDED_REMEDIATION)
-     *   else if masteryScore in [75,85) OR giScore is high
-     *                                  → LP3 (REINFORCEMENT)
-     *   else                           → LP4 (ADVANCEMENT)
-     *
-     * @param bool       $prerequisiteMet  True if all prerequisite competencies are mastered.
-     * @param float      $masteryScore     Current attempt's mastery score (0–100).
-     * @param float|null $giScore          Optional Guessing Index in [0, 1].
-     * @param float|null $cmiScore         Optional Confident Misconception Index in [0, 1] (reserved for future tuning).
+     * Decision rules (evaluated in order):
+     *   1. prerequisite not met            → 1 (PREREQUISITE_REVIEW)
+     *   2. masteryScore < 75               → 2 (GUIDED_REMEDIATION)
+     *   3. 75 <= masteryScore < 85         → 3 (REINFORCEMENT)
+     *   4. masteryScore >= 85, GI > 0.5    → 3 (REINFORCEMENT)  — guessing
+     *   5. masteryScore >= 85, CMI > 0.3   → 2 (GUIDED_REMEDIATION) — misconceptions
+     *   6. otherwise                       → 4 (ADVANCEMENT)
      */
     public function resolve(
-        bool $prerequisiteMet,
         float $masteryScore,
-        ?float $giScore = null,
-        ?float $cmiScore = null
-    ): LearningPath {
+        bool $prerequisiteMet,
+        float $gi,
+        float $cmi
+    ): int {
         if (! $prerequisiteMet) {
-            return LearningPath::PREREQUISITE_REVIEW;
+            return 1;
         }
 
-        if ($masteryScore < 75) {
-            return LearningPath::GUIDED_REMEDIATION;
+        if ($masteryScore < self::DEVELOPING_THRESHOLD) {
+            return 2;
         }
 
-        $highGuessing = $giScore !== null && $giScore >= self::HIGH_GI_THRESHOLD;
-
-        if ($masteryScore < 85 || $highGuessing) {
-            return LearningPath::REINFORCEMENT;
+        if ($masteryScore < self::MASTERY_THRESHOLD) {
+            return 3;
         }
 
-        return LearningPath::ADVANCEMENT;
+        if ($gi > self::HIGH_GI_THRESHOLD) {
+            return 3;
+        }
+
+        if ($cmi > self::HIGH_CMI_THRESHOLD) {
+            return 2;
+        }
+
+        return 4;
     }
 }

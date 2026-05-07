@@ -1,79 +1,118 @@
-import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import Navbar from '../../components/common/Navbar.jsx';
-import Spinner from '../../components/common/Spinner.jsx';
-import Button from '../../components/common/Button.jsx';
-import studentService from '../../services/studentService.js';
+import React from 'react';
+import {
+  Button, Card, Loading, MasteryBadge, ProgressBar, Spinner, cls,
+} from '../../components/common/UI.jsx';
+import { PageHeader } from '../../components/layout/Shell.jsx';
+import { api } from '../../mockData.js';
 
-export default function QuizView() {
-  const { quizId } = useParams();
-  const navigate = useNavigate();
-  const [quiz, setQuiz] = useState(null);
-  const [answers, setAnswers] = useState({});
-  const [submitting, setSubmitting] = useState(false);
+const QuizView = ({ ctx, onBack, onSeeFeedback }) => {
+  const [quiz, setQuiz] = React.useState(null);
+  const [answers, setAnswers] = React.useState({});
+  const [submitting, setSubmitting] = React.useState(false);
+  const [result, setResult] = React.useState(null);
 
-  useEffect(() => {
-    studentService.getQuiz(quizId).then(setQuiz);
-  }, [quizId]);
+  React.useEffect(() => { api.getQuiz(ctx.moduleId).then(setQuiz); }, [ctx.moduleId]);
+  if (!quiz) return <Loading/>;
 
-  const handleSelect = (questionId, choiceId) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: choiceId }));
-  };
+  const allAnswered = quiz.questions.every((_, i) => answers[i] !== undefined);
 
-  const handleSubmit = async () => {
+  const submit = () => {
     setSubmitting(true);
-    const result = await studentService.submitQuiz(quizId, answers);
-    setSubmitting(false);
-    navigate(`/student/feedback/${result.competencyId}`);
+    api.submitQuiz(quiz.id, answers).then(r => {
+      setSubmitting(false);
+      setResult(r);
+    });
   };
 
-  if (!quiz) {
+  if (result) {
+    const pct = Math.round((result.score / result.total) * 100);
+    const tone = pct >= 80 ? 'mastered' : pct >= 50 ? 'developing' : 'needs';
     return (
-      <div className="min-h-screen bg-slate-50">
-        <Navbar />
-        <main className="p-6">
-          <Spinner />
-        </main>
+      <div>
+        <PageHeader title="Quiz submitted"
+                    breadcrumbs={[{ label: 'Modules', onClick: onBack }, { label: quiz.title }]}/>
+        <Card className="p-8 max-w-2xl">
+          <div className="text-[12px] uppercase tracking-wider text-ink-500 font-semibold">Your score</div>
+          <div className="flex items-end gap-3 mt-1">
+            <div className="text-6xl font-semibold tnum text-ink-900">{result.score}<span className="text-3xl text-ink-500">/{result.total}</span></div>
+            <MasteryBadge level={tone}/>
+          </div>
+          <div className="mt-4"><ProgressBar value={pct} color={pct >= 80 ? 'green' : pct >= 50 ? 'amber' : 'red'} size="lg"/></div>
+          <p className="text-ink-700 mt-5 leading-relaxed">
+            Your responses have been sent to the AI tutor and your teacher.
+            You can review detailed feedback now or come back later.
+          </p>
+          <div className="flex flex-wrap gap-2 mt-6">
+            <Button variant="primary" onClick={onSeeFeedback}>See detailed feedback →</Button>
+            <Button variant="secondary" onClick={onBack}>Back to modules</Button>
+            <Button variant="ghost" onClick={() => { setResult(null); setAnswers({}); }}>Retake quiz</Button>
+          </div>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Navbar />
-      <main className="mx-auto max-w-2xl p-6">
-        <h1 className="text-2xl font-semibold">{quiz.title}</h1>
+    <div>
+      <PageHeader title={quiz.title}
+                  subtitle={`${quiz.questions.length} questions · multiple choice`}
+                  breadcrumbs={[{ label: 'Modules', onClick: onBack }, { label: quiz.title }]}
+                  action={<Button variant="secondary" size="sm" onClick={onBack}>Cancel</Button>}/>
 
-        <ol className="mt-6 space-y-6">
-          {quiz.questions.map((q, idx) => (
-            <li key={q.id} className="rounded-lg border bg-white p-4">
-              <p className="font-medium">
-                {idx + 1}. {q.text}
-              </p>
-              <div className="mt-3 space-y-2">
-                {q.choices.map((c) => (
-                  <label
-                    key={c.id}
-                    className="flex items-center gap-2 text-sm"
-                  >
-                    <input
-                      type="radio"
-                      name={`q-${q.id}`}
-                      checked={answers[q.id] === c.id}
-                      onChange={() => handleSelect(q.id, c.id)}
-                    />
-                    <span>{c.label}</span>
-                  </label>
-                ))}
+      <div className="grid lg:grid-cols-[1fr_280px] gap-6">
+        <div className="space-y-4">
+          {quiz.questions.map((q, i) => (
+            <Card key={q.id} className="p-6">
+              <div className="flex items-start gap-3">
+                <div className="w-7 h-7 rounded-lg bg-brand-blue-50 text-brand-blue flex items-center justify-center text-[13px] font-bold shrink-0">{i+1}</div>
+                <div className="flex-1">
+                  <div className="text-[15px] font-medium text-ink-900 leading-relaxed">{q.prompt}</div>
+                  <div className="grid gap-2 mt-4">
+                    {q.options.map((opt, j) => {
+                      const selected = answers[i] === j;
+                      return (
+                        <label key={j}
+                          className={cls('flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition',
+                            selected ? 'border-brand-blue bg-brand-blue-50' : 'border-ink-200 hover:border-ink-300 bg-white')}>
+                          <span className={cls('mt-0.5 w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition',
+                            selected ? 'border-brand-blue bg-brand-blue' : 'border-ink-300 bg-white')}>
+                            {selected && <span className="w-2 h-2 rounded-full bg-white"/>}
+                          </span>
+                          <input type="radio" className="hidden" name={q.id}
+                                 checked={selected}
+                                 onChange={() => setAnswers(a => ({ ...a, [i]: j }))}/>
+                          <span className="text-[14px] text-ink-700">{opt}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
-            </li>
+            </Card>
           ))}
-        </ol>
+        </div>
 
-        <Button onClick={handleSubmit} disabled={submitting} className="mt-6">
-          {submitting ? 'Submitting...' : 'Submit Quiz'}
-        </Button>
-      </main>
+        <Card className="p-5 self-start sticky top-4">
+          <div className="text-[12px] uppercase tracking-wider text-ink-500 font-semibold">Progress</div>
+          <div className="text-2xl font-semibold mt-1 tnum">
+            {Object.keys(answers).length}<span className="text-ink-500">/{quiz.questions.length}</span>
+          </div>
+          <div className="mt-2"><ProgressBar value={Object.keys(answers).length / quiz.questions.length * 100} color="blue"/></div>
+          <div className="grid grid-cols-5 gap-1.5 mt-4">
+            {quiz.questions.map((_, i) => (
+              <div key={i} className={cls('h-1.5 rounded-full', answers[i] !== undefined ? 'bg-brand-blue' : 'bg-ink-200')}/>
+            ))}
+          </div>
+          <Button variant="success" className="w-full justify-center mt-5"
+                  disabled={!allAnswered || submitting}
+                  onClick={submit}>
+            {submitting ? <><Spinner size={14}/>Submitting…</> : 'Submit quiz'}
+          </Button>
+          {!allAnswered && <p className="text-[12px] text-ink-500 mt-2 text-center">Answer all questions to submit.</p>}
+        </Card>
+      </div>
     </div>
   );
-}
+};
+
+export default QuizView;

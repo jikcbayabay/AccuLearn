@@ -26,16 +26,16 @@ class MasteryEngine
     }
 
     /**
-     * Classify a mastery score into a MasteryLevel.
+     * Classify a mastery score into the string value of MasteryLevel.
      *
      * Thresholds:
-     *   >= 85   → MASTERED
-     *   75–84   → DEVELOPING
-     *   <  75   → NEEDS_IMPROVEMENT
+     *   >= 85   → 'mastered'
+     *   75–84   → 'developing'
+     *   <  75   → 'needs_improvement'
      */
-    public function classifyMasteryLevel(float $masteryScore): MasteryLevel
+    public function classifyMasteryLevel(float $masteryScore): string
     {
-        return MasteryLevel::fromScore($masteryScore);
+        return MasteryLevel::fromScore($masteryScore)->value;
     }
 
     /**

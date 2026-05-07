@@ -13,12 +13,18 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
+    public const ROLE_STUDENT = 'student';
+    public const ROLE_TEACHER = 'teacher';
+    public const ROLE_ADMIN   = 'admin';
+
     protected $fillable = [
         'name',
         'email',
         'password',
         'role',
         'moodle_user_id',
+        'active',
+        'section',
     ];
 
     protected $hidden = [
@@ -30,6 +36,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password'          => 'hashed',
         'role'              => UserRole::class,
+        'active'            => 'boolean',
     ];
 
     public function masteryRecords(): HasMany
