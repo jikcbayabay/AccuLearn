@@ -1,4 +1,4 @@
-// Login page
+// Login + Register page
 
 import React from 'react';
 import Icon from '../../components/common/Icons.jsx';
@@ -7,29 +7,62 @@ import { Logo } from '../../components/layout/Shell.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 
 const LoginPage = ({ onLogin }) => {
-  const { login } = useAuth();
-  const [email, setEmail] = React.useState('student1@acculearn.test');
-  const [password, setPassword] = React.useState('password123');
-  const [loading, setLoading] = React.useState(false);
-  const [err, setErr] = React.useState('');
+  const { login, register } = useAuth();
+  const [mode, setMode] = React.useState('login'); // 'login' | 'register'
 
-  const quick = [
-    { label: 'Sign in as Student', email: 'student1@acculearn.test', password: 'password123', tone: 'student' },
-    { label: 'Sign in as Teacher', email: 'teacher@acculearn.test',  password: 'password123', tone: 'teacher' },
-    { label: 'Sign in as Admin',   email: 'admin@acculearn.test',    password: 'password123', tone: 'admin' },
-  ];
+  // shared
+  const [email, setEmail]       = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [loading, setLoading]   = React.useState(false);
+  const [err, setErr]           = React.useState('');
 
-  const submit = async (e, presetEmail, presetPassword) => {
-    e && e.preventDefault();
+  // register-only
+  const [name, setName]                     = React.useState('');
+  const [section, setSection]               = React.useState('');
+  const [passwordConfirm, setPasswordConfirm] = React.useState('');
+
+  const switchMode = (next) => {
+    setMode(next);
+    setErr('');
+  };
+
+  const submitLogin = async (e) => {
+    e.preventDefault();
     setErr('');
     setLoading(true);
-    const useEmail    = presetEmail    || email;
-    const usePassword = presetPassword || password;
     try {
-      const user = await login(useEmail, usePassword);
+      const user = await login(email, password);
       onLogin(user);
     } catch (error) {
-      setErr('Invalid email or password. Please try again.');
+      const msg = error?.response?.data?.message || 'Invalid email or password. Please try again.';
+      setErr(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const submitRegister = async (e) => {
+    e.preventDefault();
+    setErr('');
+    if (password !== passwordConfirm) {
+      setErr('Passwords do not match.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const user = await register({
+        name,
+        email,
+        password,
+        password_confirmation: passwordConfirm,
+        section: section || null,
+      });
+      onLogin(user);
+    } catch (error) {
+      const data = error?.response?.data;
+      const firstFieldError =
+        data?.errors && Object.values(data.errors)[0]?.[0];
+      setErr(firstFieldError || data?.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -80,45 +113,76 @@ const LoginPage = ({ onLogin }) => {
       <div className="flex-1 flex items-center justify-center p-6 bg-white">
         <div className="w-full max-w-sm">
           <div className="lg:hidden mb-8"><Logo/></div>
-          <h1 className="text-[26px] font-semibold tracking-tight text-ink-900">Welcome back</h1>
-          <p className="text-ink-500 mt-1">Sign in to continue your learning journey.</p>
 
-          <form onSubmit={submit} className="mt-7 space-y-4">
-            <Input label="Email" type="email" required
-                   icon={<Icon.Mail size={16}/>}
-                   value={email} onChange={e => setEmail(e.target.value)}
-                   placeholder="you@acculearn.test"/>
-            <Input label="Password" type="password" required
-                   icon={<Icon.Lock size={16}/>}
-                   value={password} onChange={e => setPassword(e.target.value)}
-                   placeholder="••••••••"/>
-            <div className="flex items-center justify-between text-[13px]">
-              <label className="flex items-center gap-2 text-ink-700">
-                <input type="checkbox" defaultChecked className="rounded text-brand-blue"/> Remember me
-              </label>
-              <a className="text-brand-blue font-medium hover:underline cursor-pointer">Forgot password?</a>
-            </div>
-            {err && <div className="text-[13px] text-mastery-needs">{err}</div>}
-            <Button type="submit" variant="primary" className="w-full justify-center" size="lg" disabled={loading}>
-              {loading ? <Spinner size={16}/> : null}
-              {loading ? 'Signing in…' : 'Sign in'}
-            </Button>
-          </form>
+          {mode === 'login' ? (
+            <>
+              <h1 className="text-[26px] font-semibold tracking-tight text-ink-900">Welcome back</h1>
+              <p className="text-ink-500 mt-1">Sign in to continue your learning journey.</p>
 
-          <div className="mt-7">
-            <div className="flex items-center gap-3 text-[12px] text-ink-500">
-              <span className="flex-1 h-px bg-ink-200"/> Demo accounts <span className="flex-1 h-px bg-ink-200"/>
-            </div>
-            <div className="grid gap-2 mt-3">
-              {quick.map(q => (
-                <button key={q.email} onClick={(e) => submit(e, q.email, q.password)} disabled={loading}
-                  className="flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl border border-ink-200 hover:border-brand-blue hover:bg-brand-blue-50/40 transition text-left disabled:opacity-50">
-                  <span className="text-[13px] text-ink-700">{q.label}</span>
-                  <span className="text-[11.5px] text-ink-500">{q.email}</span>
+              <form onSubmit={submitLogin} className="mt-7 space-y-4">
+                <Input label="Email" type="email" required
+                       icon={<Icon.Mail size={16}/>}
+                       value={email} onChange={e => setEmail(e.target.value)}
+                       placeholder="you@acculearn.test"/>
+                <Input label="Password" type="password" required
+                       icon={<Icon.Lock size={16}/>}
+                       value={password} onChange={e => setPassword(e.target.value)}
+                       placeholder="••••••••"/>
+                {err && <div className="text-[13px] text-mastery-needs">{err}</div>}
+                <Button type="submit" variant="primary" className="w-full justify-center" size="lg" disabled={loading}>
+                  {loading ? <Spinner size={16}/> : null}
+                  {loading ? 'Signing in…' : 'Sign in'}
+                </Button>
+              </form>
+
+              <p className="text-[13px] text-ink-500 mt-6 text-center">
+                New to AccuLearn?{' '}
+                <button type="button" onClick={() => switchMode('register')}
+                  className="text-brand-blue font-semibold hover:underline">
+                  Create a student account
                 </button>
-              ))}
-            </div>
-          </div>
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="text-[26px] font-semibold tracking-tight text-ink-900">Create your account</h1>
+              <p className="text-ink-500 mt-1">Sign up as a student. Teachers and admins are provisioned by your school.</p>
+
+              <form onSubmit={submitRegister} className="mt-7 space-y-4">
+                <Input label="Full name" type="text" required
+                       value={name} onChange={e => setName(e.target.value)}
+                       placeholder="Juan Dela Cruz"/>
+                <Input label="Email" type="email" required
+                       icon={<Icon.Mail size={16}/>}
+                       value={email} onChange={e => setEmail(e.target.value)}
+                       placeholder="you@school.edu"/>
+                <Input label="Section (optional)" type="text"
+                       value={section} onChange={e => setSection(e.target.value)}
+                       placeholder="Grade 11 - St. Aquinas"/>
+                <Input label="Password" type="password" required
+                       icon={<Icon.Lock size={16}/>}
+                       value={password} onChange={e => setPassword(e.target.value)}
+                       placeholder="At least 8 characters"/>
+                <Input label="Confirm password" type="password" required
+                       icon={<Icon.Lock size={16}/>}
+                       value={passwordConfirm} onChange={e => setPasswordConfirm(e.target.value)}
+                       placeholder="Repeat your password"/>
+                {err && <div className="text-[13px] text-mastery-needs">{err}</div>}
+                <Button type="submit" variant="primary" className="w-full justify-center" size="lg" disabled={loading}>
+                  {loading ? <Spinner size={16}/> : null}
+                  {loading ? 'Creating account…' : 'Create account'}
+                </Button>
+              </form>
+
+              <p className="text-[13px] text-ink-500 mt-6 text-center">
+                Already have an account?{' '}
+                <button type="button" onClick={() => switchMode('login')}
+                  className="text-brand-blue font-semibold hover:underline">
+                  Sign in
+                </button>
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>

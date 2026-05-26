@@ -45,6 +45,7 @@ class StudentMonitoringController extends Controller
                 'id'                    => $s->id,
                 'name'                  => $s->name,
                 'email'                 => $s->email,
+                'section'               => $s->section,
                 'overall_mastery'       => $overall,
                 'mastery_level'         => $level,
                 'lp_assigned'           => $latestLp,

@@ -49,7 +49,7 @@ export const Logo = ({ light = false }) => (
   </div>
 );
 
-const Topbar = ({ user, onChangeRole, onLogout }) => {
+const Topbar = ({ user, onLogout }) => {
   const [open, setOpen] = React.useState(false);
   return (
     <header className="h-14 bg-brand-blue text-white flex items-center px-4 md:px-6 gap-4 shadow-sm relative z-30">
@@ -74,18 +74,6 @@ const Topbar = ({ user, onChangeRole, onLogout }) => {
       </div>
 
       <div className="ml-auto flex items-center gap-2">
-        {/* role switcher */}
-        <div className="hidden sm:flex items-center bg-white/10 rounded-xl p-0.5 border border-white/10">
-          {['student','teacher','admin'].map(r => (
-            <button key={r}
-              onClick={() => onChangeRole(r)}
-              className={cls('px-3 py-1.5 text-[12.5px] capitalize rounded-lg transition',
-                user.role === r ? 'bg-white text-brand-blue font-semibold' : 'text-white/80 hover:text-white')}>
-              {r}
-            </button>
-          ))}
-        </div>
-
         <button className="w-9 h-9 rounded-xl hover:bg-white/10 flex items-center justify-center relative">
           <Icon.Bell size={18}/>
           <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-brand-green"/>
@@ -201,9 +189,9 @@ export const PageHeader = ({ title, subtitle, action, breadcrumbs }) => (
   </div>
 );
 
-const Shell = ({ user, current, onNavigate, onChangeRole, onLogout, children }) => (
+const Shell = ({ user, current, onNavigate, onLogout, children }) => (
   <div className="min-h-screen flex flex-col bg-ink-50">
-    <Topbar user={user} onChangeRole={onChangeRole} onLogout={onLogout}/>
+    <Topbar user={user} onLogout={onLogout}/>
     <div className="flex-1 flex">
       <Sidebar role={user.role} current={current} onNavigate={onNavigate}/>
       <main className="flex-1 min-w-0">

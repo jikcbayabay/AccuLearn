@@ -7,6 +7,19 @@ export const login = async (email, password) => {
   return res.data.user;
 };
 
+export const register = async ({ name, email, password, password_confirmation, section }) => {
+  const res = await api.post('/auth/register', {
+    name,
+    email,
+    password,
+    password_confirmation,
+    section,
+  });
+  localStorage.setItem('acculearn_token', res.data.token);
+  localStorage.setItem('acculearn_user', JSON.stringify(res.data.user));
+  return res.data.user;
+};
+
 export const me = async () => {
   const res = await api.get('/auth/me');
   return res.data;

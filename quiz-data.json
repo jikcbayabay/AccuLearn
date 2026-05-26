@@ -1,0 +1,740 @@
+{
+  "meta": {
+    "subject": "Fundamentals of Accountancy, Business and Management 1 (FABM 1)",
+    "grade_level": "Grade 11 ABM",
+    "total_competencies": 7,
+    "generated": "2026-05-24",
+    "sources": [
+      "CO1 Short Assessment and Quiz (Google Drive)",
+      "CO2 Short Assessment and Quiz (Google Drive)",
+      "CO3 Short Assessment and Quiz (Google Drive — minimal content; questions generated)",
+      "CO4 Short Assessment and Quiz (Google Drive)",
+      "CO5 - FINALS (Google Drive)",
+      "CO6 - FINALS (Google Drive)",
+      "CO7 - FINALS (Google Drive)"
+    ]
+  },
+  "quizzes": [
+    {
+      "competency_id": 1,
+      "competency_code": "ACC_001",
+      "competency_name": "Accounting Concepts and Principles",
+      "assessment_title": "Module Quiz: Accounting Concepts and Principles",
+      "passing_score": 75,
+      "questions": [
+        {
+          "sequence": 1,
+          "question_text": "What is often referred to as the \"Language of Business\"?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Mathematics", "is_correct": false, "explanation": "Mathematics is a tool used in accounting, not the language of business itself." },
+            { "sequence": 2, "answer_text": "Accounting", "is_correct": true, "explanation": "Accounting is called the language of business because it communicates financial information that allows businesses to make decisions." },
+            { "sequence": 3, "answer_text": "Management", "is_correct": false, "explanation": "Management is a business function, not the language of business." }
+          ]
+        },
+        {
+          "sequence": 2,
+          "question_text": "Who is the \"Father of Modern Accounting\"?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Luca Pacioli", "is_correct": true, "explanation": "Luca Pacioli introduced the double-entry bookkeeping system in 1494, earning him the title Father of Modern Accounting." },
+            { "sequence": 2, "answer_text": "Leonardo da Vinci", "is_correct": false, "explanation": "Leonardo da Vinci was a Renaissance artist and inventor, not an accountant." },
+            { "sequence": 3, "answer_text": "Queen Victoria", "is_correct": false, "explanation": "Queen Victoria was a British monarch with no connection to accounting." }
+          ]
+        },
+        {
+          "sequence": 3,
+          "question_text": "Which body regulates the CPA Licensure Exam in the Philippines?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "SEC", "is_correct": false, "explanation": "The SEC (Securities and Exchange Commission) regulates the securities market, not CPA licensure." },
+            { "sequence": 2, "answer_text": "PRC-BOA", "is_correct": true, "explanation": "The Professional Regulation Commission – Board of Accountancy (PRC-BOA) administers and regulates the CPA Licensure Exam in the Philippines." },
+            { "sequence": 3, "answer_text": "BIR", "is_correct": false, "explanation": "The Bureau of Internal Revenue collects taxes; it does not regulate CPA licensure." }
+          ]
+        },
+        {
+          "sequence": 4,
+          "question_text": "Which concept treats the business and the owner as two separate \"personalities\"?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Going Concern", "is_correct": false, "explanation": "Going Concern assumes the business will operate indefinitely, not that owner and business are separate." },
+            { "sequence": 2, "answer_text": "Economic Entity", "is_correct": true, "explanation": "The Economic Entity concept requires that the business be treated as a separate entity from its owner. Personal transactions must not be mixed with business transactions." },
+            { "sequence": 3, "answer_text": "Time Period", "is_correct": false, "explanation": "The Time Period concept divides the life of a business into equal intervals for reporting." }
+          ]
+        },
+        {
+          "sequence": 5,
+          "question_text": "Which assumption states that a business will continue to operate indefinitely?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Accrual", "is_correct": false, "explanation": "The Accrual assumption requires revenues and expenses to be recognized when earned/incurred, not when cash is received/paid." },
+            { "sequence": 2, "answer_text": "Going Concern", "is_correct": true, "explanation": "The Going Concern assumption holds that a business will continue to operate for the foreseeable future, allowing assets to be valued at historical cost rather than liquidation value." },
+            { "sequence": 3, "answer_text": "Monetary Unit", "is_correct": false, "explanation": "The Monetary Unit assumption requires that all transactions be measured in a stable monetary unit (Philippine Peso)." }
+          ]
+        },
+        {
+          "sequence": 6,
+          "question_text": "Accounting involves recording transactions in a __________ manner.",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Random", "is_correct": false, "explanation": "Random recording would make it impossible to trace or verify transactions." },
+            { "sequence": 2, "answer_text": "Chronological", "is_correct": true, "explanation": "Transactions are recorded in chronological (date) order in the journal, providing a complete and traceable history of business events." },
+            { "sequence": 3, "answer_text": "Alphabetical", "is_correct": false, "explanation": "Alphabetical order is not used for recording transactions; that would obscure the timing of events." }
+          ]
+        },
+        {
+          "sequence": 7,
+          "question_text": "A \"Calendar Year\" ends on which date?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "June 30", "is_correct": false, "explanation": "June 30 is the end of the second quarter, not the calendar year." },
+            { "sequence": 2, "answer_text": "December 31", "is_correct": true, "explanation": "A Calendar Year runs from January 1 to December 31. Any accounting period ending on a date other than December 31 is called a Fiscal Year." },
+            { "sequence": 3, "answer_text": "March 31", "is_correct": false, "explanation": "March 31 marks the end of the first quarter of the calendar year." }
+          ]
+        },
+        {
+          "sequence": 8,
+          "question_text": "Which principle requires assets to be recorded at their original purchase price?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Cost Principle", "is_correct": true, "explanation": "The Cost (Historical Cost) Principle requires assets to be recorded at the actual price paid to acquire them, not at current market value or appraised value." },
+            { "sequence": 2, "answer_text": "Matching Principle", "is_correct": false, "explanation": "The Matching Principle requires expenses to be recorded in the same period as the revenues they helped generate." },
+            { "sequence": 3, "answer_text": "Objectivity", "is_correct": false, "explanation": "The Objectivity Principle requires that accounting data be supported by verifiable evidence, not that assets be at original cost." }
+          ]
+        },
+        {
+          "sequence": 9,
+          "question_text": "Which of the following is an internal user of accounting information?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Bank Manager", "is_correct": false, "explanation": "A bank manager is an external user who needs accounting information to decide on loans." },
+            { "sequence": 2, "answer_text": "Business Manager", "is_correct": true, "explanation": "A business manager is an internal user who uses accounting information for planning, controlling, and making internal business decisions." },
+            { "sequence": 3, "answer_text": "Tax Auditor", "is_correct": false, "explanation": "A tax auditor works for the government (BIR) and is an external user of accounting information." }
+          ]
+        },
+        {
+          "sequence": 10,
+          "question_text": "The process of transferring information from a journal to a ledger is called:",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Recording", "is_correct": false, "explanation": "Recording refers to writing down transactions in the journal, not moving them to the ledger." },
+            { "sequence": 2, "answer_text": "Posting", "is_correct": true, "explanation": "Posting is the process of transferring each debit and credit from the general journal to the appropriate account in the general ledger. It is Step 3 of the accounting cycle." },
+            { "sequence": 3, "answer_text": "Summarizing", "is_correct": false, "explanation": "Summarizing occurs when account balances are compiled, such as when preparing the trial balance." }
+          ]
+        },
+        {
+          "sequence": 11,
+          "question_text": "Which branch of accounting prepares reports primarily for external users?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Financial Accounting", "is_correct": true, "explanation": "Financial Accounting prepares general-purpose financial statements for external users such as investors, creditors, government agencies, and the public." },
+            { "sequence": 2, "answer_text": "Management Accounting", "is_correct": false, "explanation": "Management Accounting provides information for internal users (managers) to plan and make decisions." },
+            { "sequence": 3, "answer_text": "Tax Accounting", "is_correct": false, "explanation": "Tax Accounting focuses on compliance with tax laws and regulations, primarily for the BIR." }
+          ]
+        },
+        {
+          "sequence": 12,
+          "question_text": "What does GAAP stand for?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "General Accounting and Audit Principles", "is_correct": false, "explanation": "This is not the correct expansion; GAAP does not refer to auditing specifically." },
+            { "sequence": 2, "answer_text": "Generally Accepted Accounting Principles", "is_correct": true, "explanation": "GAAP stands for Generally Accepted Accounting Principles — the standard framework of guidelines, conventions, and rules that accountants follow when preparing financial statements." },
+            { "sequence": 3, "answer_text": "Global Accounting and Audit Practices", "is_correct": false, "explanation": "GAAP is not a global standard; in the Philippines it refers specifically to locally adopted principles." }
+          ]
+        },
+        {
+          "sequence": 13,
+          "question_text": "Which concept requires transactions to be measured in Philippine Pesos?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Economic Entity", "is_correct": false, "explanation": "The Economic Entity concept separates the business from its owner, not about currency." },
+            { "sequence": 2, "answer_text": "Monetary Unit", "is_correct": true, "explanation": "The Monetary Unit (Stable Monetary Unit) Assumption requires all business transactions to be recorded in a single, stable monetary unit — the Philippine Peso for Philippine businesses." },
+            { "sequence": 3, "answer_text": "Adequate Disclosure", "is_correct": false, "explanation": "Adequate Disclosure requires all material financial information to be included in financial reports, not related to currency." }
+          ]
+        },
+        {
+          "sequence": 14,
+          "question_text": "Bookkeeping is a part of the broader field of accounting.",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "True", "is_correct": true, "explanation": "True. Bookkeeping is the recording phase of accounting. Accounting is broader and includes recording, classifying, summarizing, and interpreting financial data." },
+            { "sequence": 2, "answer_text": "False", "is_correct": false, "explanation": "False is incorrect. Bookkeeping is indeed a subset of the accounting process, specifically the data entry and recording phase." }
+          ]
+        },
+        {
+          "sequence": 15,
+          "question_text": "Which principle requires receipts or invoices to support all recorded data?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Matching Principle", "is_correct": false, "explanation": "The Matching Principle deals with timing of revenues and expenses, not documentary support." },
+            { "sequence": 2, "answer_text": "Objectivity Principle", "is_correct": true, "explanation": "The Objectivity (Verifiability) Principle requires that all accounting data be supported by objective, verifiable evidence such as official receipts, invoices, checks, and other source documents." },
+            { "sequence": 3, "answer_text": "Consistency Principle", "is_correct": false, "explanation": "The Consistency Principle requires using the same accounting methods from period to period, not documentary support." }
+          ]
+        }
+      ]
+    },
+    {
+      "competency_id": 2,
+      "competency_code": "ACC_002",
+      "competency_name": "The Accounting Equation",
+      "assessment_title": "Module Quiz: The Accounting Equation",
+      "passing_score": 75,
+      "questions": [
+        {
+          "sequence": 1,
+          "question_text": "What is the fundamental accounting equation?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Assets + Liabilities = Owner's Equity", "is_correct": false, "explanation": "This is incorrect. Adding assets and liabilities together does not produce owner's equity." },
+            { "sequence": 2, "answer_text": "Assets = Liabilities + Owner's Equity", "is_correct": true, "explanation": "The fundamental accounting equation states that a business's resources (Assets) equal the claims on those resources by creditors (Liabilities) plus the owner (Owner's Equity). This equation must always remain balanced." },
+            { "sequence": 3, "answer_text": "Liabilities = Assets + Owner's Equity", "is_correct": false, "explanation": "This rearrangement is mathematically wrong." }
+          ]
+        },
+        {
+          "sequence": 2,
+          "question_text": "These are the economic resources owned or controlled by a business.",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Assets", "is_correct": true, "explanation": "Assets are the economic resources — things of value owned or controlled by the business that are expected to provide future economic benefits." },
+            { "sequence": 2, "answer_text": "Liabilities", "is_correct": false, "explanation": "Liabilities are economic obligations (debts the business owes), not resources owned." },
+            { "sequence": 3, "answer_text": "Revenues", "is_correct": false, "explanation": "Revenues are income earned from business operations, not physical or financial resources." }
+          ]
+        },
+        {
+          "sequence": 3,
+          "question_text": "Which element represents the \"claims of creditors\" against the assets?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Owner's Equity", "is_correct": false, "explanation": "Owner's Equity represents the owner's claim on the assets, not creditors' claims." },
+            { "sequence": 2, "answer_text": "Liabilities", "is_correct": true, "explanation": "Liabilities (Economic Obligations) are the claims of creditors — amounts the business owes to outside parties such as banks, suppliers, and lenders." },
+            { "sequence": 3, "answer_text": "Economic Resources", "is_correct": false, "explanation": "Economic Resources is another term for assets, not creditors' claims." }
+          ]
+        },
+        {
+          "sequence": 4,
+          "question_text": "What is the alternative name for Owner's Equity?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Residual Interest", "is_correct": true, "explanation": "Owner's Equity is also called Residual Interest because it represents what remains of the assets after all liabilities have been paid. Equation: Equity = Assets − Liabilities." },
+            { "sequence": 2, "answer_text": "Economic Obligations", "is_correct": false, "explanation": "Economic Obligations is the alternative name for Liabilities, not Owner's Equity." },
+            { "sequence": 3, "answer_text": "Total Debt", "is_correct": false, "explanation": "Total Debt refers to Liabilities, not Owner's Equity." }
+          ]
+        },
+        {
+          "sequence": 5,
+          "question_text": "If Assets = ₱50,000 and Liabilities = ₱20,000, what is the Owner's Equity?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "₱70,000", "is_correct": false, "explanation": "₱70,000 would be incorrect — that is the sum of assets and liabilities, not the difference." },
+            { "sequence": 2, "answer_text": "₱30,000", "is_correct": true, "explanation": "Owner's Equity = Assets − Liabilities = ₱50,000 − ₱20,000 = ₱30,000." },
+            { "sequence": 3, "answer_text": "₱50,000", "is_correct": false, "explanation": "₱50,000 is the total assets, not the owner's equity." }
+          ]
+        },
+        {
+          "sequence": 6,
+          "question_text": "When an owner invests cash into the business, which side(s) of the equation increase?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Only the left side (Assets)", "is_correct": false, "explanation": "If only assets increase without a corresponding increase on the right side, the equation becomes unbalanced." },
+            { "sequence": 2, "answer_text": "Only the right side (Equity)", "is_correct": false, "explanation": "If only equity increases without assets increasing, the equation becomes unbalanced." },
+            { "sequence": 3, "answer_text": "Both sides", "is_correct": true, "explanation": "When an owner invests cash, Assets (Cash) increase on the left side AND Owner's Equity (Capital) increases on the right side, keeping the equation balanced." }
+          ]
+        },
+        {
+          "sequence": 7,
+          "question_text": "Buying office supplies for cash is an example of an:",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Asset Swap", "is_correct": true, "explanation": "Buying supplies for cash is an asset swap — one asset (Cash) decreases while another asset (Supplies) increases by the same amount. Total assets remain unchanged." },
+            { "sequence": 2, "answer_text": "Increase in Liabilities", "is_correct": false, "explanation": "No liability is created when paying cash — the transaction is settled immediately." },
+            { "sequence": 3, "answer_text": "Increase in Equity", "is_correct": false, "explanation": "Equity does not change in a cash purchase of supplies; it is purely an asset exchange." }
+          ]
+        },
+        {
+          "sequence": 8,
+          "question_text": "Which of these is a common example of a Liability?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Accounts Receivable", "is_correct": false, "explanation": "Accounts Receivable is an asset — it represents money that customers owe TO the business." },
+            { "sequence": 2, "answer_text": "Notes Payable", "is_correct": true, "explanation": "Notes Payable is a liability — it represents a formal written promise by the business to pay a creditor a specific amount on a future date." },
+            { "sequence": 3, "answer_text": "Office Equipment", "is_correct": false, "explanation": "Office Equipment is an asset — it is a physical resource owned by the business." }
+          ]
+        },
+        {
+          "sequence": 9,
+          "question_text": "If the Balance Scale shows ₱100,000 on the Asset side and ₱60,000 on the Equity side, how much are the Liabilities?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "₱160,000", "is_correct": false, "explanation": "₱160,000 is the sum of assets and equity, not the liabilities." },
+            { "sequence": 2, "answer_text": "₱40,000", "is_correct": true, "explanation": "Liabilities = Assets − Owner's Equity = ₱100,000 − ₱60,000 = ₱40,000." },
+            { "sequence": 3, "answer_text": "₱100,000", "is_correct": false, "explanation": "₱100,000 is the total assets, not the liabilities." }
+          ]
+        },
+        {
+          "sequence": 10,
+          "question_text": "Which account title represents money owed TO the business by customers?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Accounts Payable", "is_correct": false, "explanation": "Accounts Payable represents money the business owes TO its suppliers — it is a liability." },
+            { "sequence": 2, "answer_text": "Accounts Receivable", "is_correct": true, "explanation": "Accounts Receivable is an asset representing amounts owed TO the business by customers who purchased goods or services on credit." },
+            { "sequence": 3, "answer_text": "Salaries Payable", "is_correct": false, "explanation": "Salaries Payable is a liability representing unpaid wages owed TO employees." }
+          ]
+        },
+        {
+          "sequence": 11,
+          "question_text": "The accounting equation must remain balanced after every single transaction.",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "True", "is_correct": true, "explanation": "True. The accounting equation (Assets = Liabilities + Owner's Equity) must always be in balance after every transaction. This is the foundation of double-entry bookkeeping — every transaction has a dual effect." },
+            { "sequence": 2, "answer_text": "False", "is_correct": false, "explanation": "False. The equation must remain balanced at all times. An unbalanced equation indicates a recording error." }
+          ]
+        },
+        {
+          "sequence": 12,
+          "question_text": "Paying a ₱5,000 debt using business cash results in:",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Decrease Asset, Decrease Liability", "is_correct": true, "explanation": "Cash (an asset) decreases by ₱5,000, and the corresponding debt (a liability) also decreases by ₱5,000. Both sides of the equation decrease equally, maintaining balance." },
+            { "sequence": 2, "answer_text": "Increase Asset, Decrease Liability", "is_correct": false, "explanation": "Cash would decrease (go out), not increase, when paying a debt." },
+            { "sequence": 3, "answer_text": "Decrease Asset, Decrease Equity", "is_correct": false, "explanation": "Owner's Equity does not decrease when paying off a liability — the business is simply reducing a debt." }
+          ]
+        },
+        {
+          "sequence": 13,
+          "question_text": "Which element is described as \"Economic Obligations\"?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Assets", "is_correct": false, "explanation": "Assets are Economic Resources — things of value owned by the business." },
+            { "sequence": 2, "answer_text": "Liabilities", "is_correct": true, "explanation": "Liabilities are also called Economic Obligations — present duties arising from past events that are expected to result in an outflow of resources from the business." },
+            { "sequence": 3, "answer_text": "Equity", "is_correct": false, "explanation": "Equity (Residual Interest) is what remains after obligations are subtracted from resources." }
+          ]
+        },
+        {
+          "sequence": 14,
+          "question_text": "If a business has ₱30,000 in Assets and ₱30,000 in Equity, what is the value of Liabilities?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "₱60,000", "is_correct": false, "explanation": "₱60,000 would be incorrect; that is the sum of assets and equity." },
+            { "sequence": 2, "answer_text": "₱0", "is_correct": true, "explanation": "Liabilities = Assets − Equity = ₱30,000 − ₱30,000 = ₱0. This means the business has no debt; all assets are owned entirely by the owner." },
+            { "sequence": 3, "answer_text": "₱30,000", "is_correct": false, "explanation": "If liabilities were ₱30,000, then Assets = Liabilities + Equity = ₱30,000 + ₱30,000 = ₱60,000, but assets are only ₱30,000." }
+          ]
+        },
+        {
+          "sequence": 15,
+          "question_text": "Owner's Drawings (withdrawals) have what effect on the equation?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Decrease Assets and Decrease Equity", "is_correct": true, "explanation": "When an owner withdraws cash, Assets (Cash) decrease on the left side, and Owner's Equity (via the Drawings account) decreases on the right side. The equation remains balanced." },
+            { "sequence": 2, "answer_text": "Increase Assets and Increase Equity", "is_correct": false, "explanation": "Withdrawals remove cash from the business — they decrease, not increase, assets." },
+            { "sequence": 3, "answer_text": "Decrease Assets and Increase Liabilities", "is_correct": false, "explanation": "Drawings are a reduction in owner's equity, not the creation of a new liability." }
+          ]
+        }
+      ]
+    },
+    {
+      "competency_id": 3,
+      "competency_code": "ACC_003",
+      "competency_name": "Types of Major Accounts",
+      "assessment_title": "Module Quiz: The Five Major Accounts and Chart of Accounts",
+      "passing_score": 75,
+      "questions": [
+        {
+          "sequence": 1,
+          "question_text": "The five major account classifications used in accounting are:",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Cash, Assets, Debits, Credits, Equity", "is_correct": false, "explanation": "Cash is only one account within Assets; Debits and Credits are recording tools, not account classifications." },
+            { "sequence": 2, "answer_text": "Assets, Liabilities, Owner's Equity, Revenue, Expenses", "is_correct": true, "explanation": "The five major account classifications are: Assets (resources), Liabilities (obligations), Owner's Equity (residual interest), Revenue (income earned), and Expenses (costs incurred). These five categories encompass every account in a business's chart of accounts." },
+            { "sequence": 3, "answer_text": "Income, Costs, Capital, Debts, Properties", "is_correct": false, "explanation": "These informal terms do not represent the standard five major account classifications used in accounting." },
+            { "sequence": 4, "answer_text": "Current Assets, Fixed Assets, Payables, Revenue, Net Income", "is_correct": false, "explanation": "These are subcategories, not the five major classification groups." }
+          ]
+        },
+        {
+          "sequence": 2,
+          "question_text": "Which of the following is an example of an ASSET account?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Accounts Payable", "is_correct": false, "explanation": "Accounts Payable is a Liability — it represents money the business owes to suppliers." },
+            { "sequence": 2, "answer_text": "Cash", "is_correct": true, "explanation": "Cash is the most liquid asset. It is classified as a current asset because it is available immediately for business use." },
+            { "sequence": 3, "answer_text": "Service Revenue", "is_correct": false, "explanation": "Service Revenue is a Revenue account, not an asset." },
+            { "sequence": 4, "answer_text": "Rent Expense", "is_correct": false, "explanation": "Rent Expense is an Expense account, representing the cost of using rented space." }
+          ]
+        },
+        {
+          "sequence": 3,
+          "question_text": "Which account records money owed TO the business by customers?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Accounts Payable", "is_correct": false, "explanation": "Accounts Payable records money the business owes TO creditors — it is a liability." },
+            { "sequence": 2, "answer_text": "Notes Payable", "is_correct": false, "explanation": "Notes Payable is a liability representing a formal written debt of the business." },
+            { "sequence": 3, "answer_text": "Accounts Receivable", "is_correct": true, "explanation": "Accounts Receivable is an asset account that records the amounts owed TO the business by its credit customers. It represents a future cash inflow." },
+            { "sequence": 4, "answer_text": "Unearned Revenue", "is_correct": false, "explanation": "Unearned Revenue is a liability — cash received in advance for services not yet performed." }
+          ]
+        },
+        {
+          "sequence": 4,
+          "question_text": "Which of the following is classified as a LIABILITY?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Equipment", "is_correct": false, "explanation": "Equipment is a non-current asset — a physical resource owned by the business." },
+            { "sequence": 2, "answer_text": "Owner's Capital", "is_correct": false, "explanation": "Owner's Capital is an Owner's Equity account representing the owner's investment in the business." },
+            { "sequence": 3, "answer_text": "Notes Payable", "is_correct": true, "explanation": "Notes Payable is a liability — a formal written obligation (promissory note) to repay borrowed money. It represents the business's debt to a lender." },
+            { "sequence": 4, "answer_text": "Supplies", "is_correct": false, "explanation": "Supplies is a current asset — items purchased for use in business operations." }
+          ]
+        },
+        {
+          "sequence": 5,
+          "question_text": "Owner's Capital belongs to which account classification?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Asset", "is_correct": false, "explanation": "Assets are resources owned by the business, not the owner's investment claim." },
+            { "sequence": 2, "answer_text": "Liability", "is_correct": false, "explanation": "Liabilities are obligations to outside parties (creditors), not to the owner." },
+            { "sequence": 3, "answer_text": "Owner's Equity", "is_correct": true, "explanation": "Owner's Capital is the primary Owner's Equity account. It represents the owner's total investment in the business and increases with additional investments and net income, decreasing with withdrawals and net losses." },
+            { "sequence": 4, "answer_text": "Expense", "is_correct": false, "explanation": "Owner's Capital is not an expense; it is the owner's stake in the business." }
+          ]
+        },
+        {
+          "sequence": 6,
+          "question_text": "Service Revenue is an example of which type of account?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Asset", "is_correct": false, "explanation": "Service Revenue increases equity through income earned, not a resource owned." },
+            { "sequence": 2, "answer_text": "Liability", "is_correct": false, "explanation": "Revenue is not an obligation owed to creditors." },
+            { "sequence": 3, "answer_text": "Owner's Equity", "is_correct": false, "explanation": "Revenue is a separate major classification that increases equity indirectly through net income." },
+            { "sequence": 4, "answer_text": "Revenue", "is_correct": true, "explanation": "Service Revenue is a Revenue account — it records income earned by the business from performing services. It has a normal credit balance and increases Owner's Equity when closed at year-end." }
+          ]
+        },
+        {
+          "sequence": 7,
+          "question_text": "Which account is classified as an EXPENSE?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Prepaid Insurance", "is_correct": false, "explanation": "Prepaid Insurance is an asset — it represents an insurance premium paid in advance that provides future benefit." },
+            { "sequence": 2, "answer_text": "Utilities Expense", "is_correct": true, "explanation": "Utilities Expense is an Expense account — it records the cost of electricity, water, and other utilities consumed during the period." },
+            { "sequence": 3, "answer_text": "Land", "is_correct": false, "explanation": "Land is a non-current asset — a physical resource owned by the business." },
+            { "sequence": 4, "answer_text": "Notes Receivable", "is_correct": false, "explanation": "Notes Receivable is an asset — a formal written promise from a customer or debtor to pay the business." }
+          ]
+        },
+        {
+          "sequence": 8,
+          "question_text": "The Chart of Accounts is best described as:",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "A list of all customers and their balances", "is_correct": false, "explanation": "A list of customers and balances would be the Accounts Receivable subsidiary ledger, not the chart of accounts." },
+            { "sequence": 2, "answer_text": "A financial statement showing profits", "is_correct": false, "explanation": "Financial statements showing profits are income statements, not the chart of accounts." },
+            { "sequence": 3, "answer_text": "A numbered list of all accounts used by a business", "is_correct": true, "explanation": "The Chart of Accounts is an indexed, numbered directory of all account titles used by a business. Each account is assigned a unique number for easy reference, organized by the five major account classifications." },
+            { "sequence": 4, "answer_text": "A record of all cash transactions", "is_correct": false, "explanation": "A record of cash transactions would be the Cash Receipts/Disbursements Journal, not the chart of accounts." }
+          ]
+        },
+        {
+          "sequence": 9,
+          "question_text": "Accounts with balances that carry over from one period to the next are called:",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Temporary accounts", "is_correct": false, "explanation": "Temporary (nominal) accounts are closed to zero at the end of each period; their balances do NOT carry over." },
+            { "sequence": 2, "answer_text": "Nominal accounts", "is_correct": false, "explanation": "Nominal accounts is another name for temporary accounts — Revenue, Expense, and Drawings. They are reset to zero each period." },
+            { "sequence": 3, "answer_text": "Permanent accounts", "is_correct": true, "explanation": "Permanent (real) accounts — Assets, Liabilities, and Owner's Capital — carry their balances from one accounting period to the next. They are never closed." },
+            { "sequence": 4, "answer_text": "Closing accounts", "is_correct": false, "explanation": "Closing accounts is not a classification; closing is a process applied to temporary accounts." }
+          ]
+        },
+        {
+          "sequence": 10,
+          "question_text": "Which of the following are classified as TEMPORARY accounts?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Assets, Liabilities, Equity", "is_correct": false, "explanation": "Assets, Liabilities, and Equity are permanent accounts — their balances carry forward to the next period." },
+            { "sequence": 2, "answer_text": "Revenues, Expenses, Drawings", "is_correct": true, "explanation": "Revenues, Expenses, and Drawings are temporary (nominal) accounts. They are closed to zero at the end of every accounting period so they reflect only the current period's activity." },
+            { "sequence": 3, "answer_text": "Cash, Equipment, Land", "is_correct": false, "explanation": "Cash, Equipment, and Land are all asset accounts — they are permanent accounts." },
+            { "sequence": 4, "answer_text": "Payables, Receivables, Inventory", "is_correct": false, "explanation": "Payables (liability), Receivables (asset), and Inventory (asset) are all permanent accounts." }
+          ]
+        },
+        {
+          "sequence": 11,
+          "question_text": "Owner's Drawings is best classified as:",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "A Liability", "is_correct": false, "explanation": "Drawings is not a debt owed to an outside party; it is the owner taking back their own investment." },
+            { "sequence": 2, "answer_text": "An Asset", "is_correct": false, "explanation": "Drawings reduces assets (usually cash) but is not itself an asset." },
+            { "sequence": 3, "answer_text": "A Revenue account", "is_correct": false, "explanation": "Drawings decreases equity; revenue increases equity. They are opposites." },
+            { "sequence": 4, "answer_text": "A contra-equity account", "is_correct": true, "explanation": "Owner's Drawings is a contra-equity account — it has a normal debit balance and reduces Owner's Capital. It is a temporary account closed to Capital at year-end." }
+          ]
+        },
+        {
+          "sequence": 12,
+          "question_text": "Which account would appear in the ASSET section of the chart of accounts?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Loans Payable", "is_correct": false, "explanation": "Loans Payable is a liability — a debt owed to a financial institution." },
+            { "sequence": 2, "answer_text": "Prepaid Rent", "is_correct": true, "explanation": "Prepaid Rent is a current asset — it represents rent paid in advance that provides a future economic benefit (the right to occupy space in future periods)." },
+            { "sequence": 3, "answer_text": "Unearned Revenue", "is_correct": false, "explanation": "Unearned Revenue is a liability — it represents cash received for services not yet performed." },
+            { "sequence": 4, "answer_text": "Service Fees Earned", "is_correct": false, "explanation": "Service Fees Earned is a revenue account, not an asset." }
+          ]
+        },
+        {
+          "sequence": 13,
+          "question_text": "In a typical Chart of Accounts for a service business, which number range is usually assigned to ASSET accounts?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "100-199", "is_correct": true, "explanation": "By convention, asset accounts are numbered 100-199, liabilities 200-299, owner's equity 300-399, revenues 400-499, and expenses 500-599. This numbering system makes it easy to identify an account's classification at a glance." },
+            { "sequence": 2, "answer_text": "200-299", "is_correct": false, "explanation": "The 200-299 range is typically reserved for Liability accounts." },
+            { "sequence": 3, "answer_text": "300-399", "is_correct": false, "explanation": "The 300-399 range is typically reserved for Owner's Equity accounts." },
+            { "sequence": 4, "answer_text": "400-499", "is_correct": false, "explanation": "The 400-499 range is typically reserved for Revenue accounts." }
+          ]
+        },
+        {
+          "sequence": 14,
+          "question_text": "Which of the following is NOT classified as a current asset?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Cash", "is_correct": false, "explanation": "Cash is a current asset — it is the most liquid asset available for immediate use." },
+            { "sequence": 2, "answer_text": "Accounts Receivable", "is_correct": false, "explanation": "Accounts Receivable is a current asset — it is expected to be collected within one year." },
+            { "sequence": 3, "answer_text": "Prepaid Insurance", "is_correct": false, "explanation": "Prepaid Insurance is typically a current asset if the coverage period is within one year." },
+            { "sequence": 4, "answer_text": "Land", "is_correct": true, "explanation": "Land is a non-current (long-term) asset. It has an indefinite useful life and is NOT subject to depreciation. It is not expected to be converted to cash within one year." }
+          ]
+        },
+        {
+          "sequence": 15,
+          "question_text": "Accumulated Depreciation is best described as:",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "An expense account", "is_correct": false, "explanation": "Depreciation Expense is an expense account. Accumulated Depreciation is different — it is the running total of depreciation already recorded." },
+            { "sequence": 2, "answer_text": "A liability account", "is_correct": false, "explanation": "Accumulated Depreciation is not a liability. It does not represent money owed to an outside party." },
+            { "sequence": 3, "answer_text": "A contra-asset account", "is_correct": true, "explanation": "Accumulated Depreciation is a contra-asset account — it offsets the related asset (e.g., Equipment). It has a normal credit balance and reduces the book value of the asset it is paired with." },
+            { "sequence": 4, "answer_text": "An equity account", "is_correct": false, "explanation": "Accumulated Depreciation is not an equity account; it is directly associated with specific long-term assets." }
+          ]
+        }
+      ]
+    },
+    {
+      "competency_id": 4,
+      "competency_code": "ACC_004",
+      "competency_name": "Books of Accounts",
+      "assessment_title": "Module Quiz: Books of Accounts — Journal, Ledger, and Posting",
+      "passing_score": 75,
+      "questions": [
+        {
+          "sequence": 1,
+          "question_text": "Which book is known as the \"Book of Original Entry\"?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Ledger", "is_correct": false, "explanation": "The Ledger is the Book of Final Entry — it organizes transactions by account title." },
+            { "sequence": 2, "answer_text": "Journal", "is_correct": true, "explanation": "The Journal is the Book of Original Entry — it is the first formal record of every business transaction, written in chronological order with debits and credits." },
+            { "sequence": 3, "answer_text": "Worksheet", "is_correct": false, "explanation": "A Worksheet is a working paper used to organize data before preparing financial statements; it is not a book of original entry." }
+          ]
+        },
+        {
+          "sequence": 2,
+          "question_text": "What is the primary purpose of the General Journal?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Find running account balances", "is_correct": false, "explanation": "Running balances are found in the Ledger, not the Journal." },
+            { "sequence": 2, "answer_text": "Record transactions in chronological order", "is_correct": true, "explanation": "The Journal's primary purpose is to record every business transaction in chronological (date) order with its corresponding debit and credit entries, providing a complete audit trail." },
+            { "sequence": 3, "answer_text": "Prepare tax returns", "is_correct": false, "explanation": "Tax returns are prepared using financial statements, not directly from the Journal." }
+          ]
+        },
+        {
+          "sequence": 3,
+          "question_text": "Which book is used to find the \"Running Balance\" of an account?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Journal", "is_correct": false, "explanation": "The Journal records transactions chronologically but does not show running balances per account." },
+            { "sequence": 2, "answer_text": "Ledger", "is_correct": true, "explanation": "The Ledger (specifically the Balance-Column form) shows the running balance of each account after every posting, making it easy to determine the current balance at any time." },
+            { "sequence": 3, "answer_text": "Invoice", "is_correct": false, "explanation": "An invoice is a source document, not an accounting book." }
+          ]
+        },
+        {
+          "sequence": 4,
+          "question_text": "Which of the following correctly describes the order of use for accounting books?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "The Ledger is used BEFORE the Journal", "is_correct": false, "explanation": "Incorrect. You must first record in the Journal before posting to the Ledger." },
+            { "sequence": 2, "answer_text": "The Journal is used BEFORE the Ledger", "is_correct": true, "explanation": "The correct order is: Journal first (Step 2), then Ledger (Step 3). You cannot post to the Ledger without a journal entry to reference." },
+            { "sequence": 3, "answer_text": "Both are used at the same time", "is_correct": false, "explanation": "They are used sequentially, not simultaneously. Journalizing precedes posting." }
+          ]
+        },
+        {
+          "sequence": 5,
+          "question_text": "What is the General Ledger's nickname?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Book of First Entry", "is_correct": false, "explanation": "Book of First Entry (or Original Entry) refers to the Journal, not the Ledger." },
+            { "sequence": 2, "answer_text": "Book of Final Entry", "is_correct": true, "explanation": "The General Ledger is called the Book of Final Entry because it contains the final, organized balances of all accounts — the balances used to prepare the Trial Balance and Financial Statements." },
+            { "sequence": 3, "answer_text": "Diary of Business", "is_correct": false, "explanation": "The Journal is often called the 'diary' of the business because it records events in chronological order." }
+          ]
+        },
+        {
+          "sequence": 6,
+          "question_text": "Where are DEBITED accounts written in a journal entry?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Indented (set in from the margin)", "is_correct": false, "explanation": "Credited accounts are indented, not debited accounts." },
+            { "sequence": 2, "answer_text": "Flush left (at the left margin)", "is_correct": true, "explanation": "In a standard journal entry, debited accounts are written flush left (at the margin). Credited accounts are indented below them to distinguish debits from credits visually." },
+            { "sequence": 3, "answer_text": "On the last line of the entry", "is_correct": false, "explanation": "Debited accounts always appear first (flush left), not on the last line." }
+          ]
+        },
+        {
+          "sequence": 7,
+          "question_text": "What is the \"Narration\" in a journal entry?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "The account title", "is_correct": false, "explanation": "Account titles are part of the journal entry itself, not the narration." },
+            { "sequence": 2, "answer_text": "A brief explanation of the transaction", "is_correct": true, "explanation": "The Narration (also called Explanation) is a brief description written below the debit and credit accounts. It identifies the nature and source of the transaction (e.g., 'To record initial cash investment by owner')." },
+            { "sequence": 3, "answer_text": "The page number of the journal", "is_correct": false, "explanation": "Page numbers appear in the journal header, not as the narration." }
+          ]
+        },
+        {
+          "sequence": 8,
+          "question_text": "A \"Simple Entry\" involves how many accounts?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Two", "is_correct": true, "explanation": "A Simple Entry involves exactly two accounts — one debit and one credit. Example: Debit Cash / Credit Owner's Capital. When more than two accounts are needed, it is called a Compound Entry." },
+            { "sequence": 2, "answer_text": "Three", "is_correct": false, "explanation": "Three accounts indicate a Compound Entry, not a Simple Entry." },
+            { "sequence": 3, "answer_text": "Many", "is_correct": false, "explanation": "'Many accounts' describes a complex Compound Entry, not a Simple Entry." }
+          ]
+        },
+        {
+          "sequence": 9,
+          "question_text": "When is the PR (Posting Reference) column in the Journal filled in?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "When journalizing (while writing the entry)", "is_correct": false, "explanation": "The PR column is intentionally left blank during journalizing. A blank PR means 'not yet posted' — an important signal." },
+            { "sequence": 2, "answer_text": "After posting (once the entry is transferred to the Ledger)", "is_correct": true, "explanation": "The PR column in the Journal is filled in AFTER the entry has been posted to the Ledger. The account number is written as confirmation that posting was completed. A blank PR warns the accountant that posting is still pending." },
+            { "sequence": 3, "answer_text": "Never", "is_correct": false, "explanation": "The PR column must be filled in after posting to maintain the audit trail between the Journal and Ledger." }
+          ]
+        },
+        {
+          "sequence": 10,
+          "question_text": "What is written on the line immediately AFTER the account titles in a journal entry?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "The debit amount", "is_correct": false, "explanation": "Debit amounts appear in the debit column next to the account title, not on a separate line after." },
+            { "sequence": 2, "answer_text": "The explanation (narration)", "is_correct": true, "explanation": "After writing the debited and credited account titles and their amounts, the accountant writes a brief explanation (narration) on the next line. This explains what the transaction represents." },
+            { "sequence": 3, "answer_text": "The credit amount", "is_correct": false, "explanation": "Credit amounts appear in the credit column next to the credited account title, not as a separate line after the entry." }
+          ]
+        },
+        {
+          "sequence": 11,
+          "question_text": "Which journal records ONLY credit sales (sales on account)?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "CRJ (Cash Receipts Journal)", "is_correct": false, "explanation": "The CRJ records all cash received, including cash sales — not credit sales." },
+            { "sequence": 2, "answer_text": "SJ (Sales Journal)", "is_correct": true, "explanation": "The Sales Journal (SJ) records only credit sales — transactions where goods or services are sold on account (customer owes money later). Cash sales are recorded in the CRJ." },
+            { "sequence": 3, "answer_text": "GJ (General Journal)", "is_correct": false, "explanation": "The GJ records transactions that do not fit the special journals, such as adjusting and closing entries." }
+          ]
+        },
+        {
+          "sequence": 12,
+          "question_text": "What does CDJ stand for?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Cash Deposit Journal", "is_correct": false, "explanation": "There is no accounting journal called the Cash Deposit Journal." },
+            { "sequence": 2, "answer_text": "Cash Disbursements Journal", "is_correct": true, "explanation": "CDJ stands for Cash Disbursements Journal — it records all cash payments made by the business, such as paying rent, salaries, or settling accounts payable." },
+            { "sequence": 3, "answer_text": "Credit Daily Journal", "is_correct": false, "explanation": "There is no accounting journal called the Credit Daily Journal." }
+          ]
+        },
+        {
+          "sequence": 13,
+          "question_text": "Cash sales are recorded in which special journal?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "SJ (Sales Journal)", "is_correct": false, "explanation": "The Sales Journal records only CREDIT sales (sales on account), not cash sales." },
+            { "sequence": 2, "answer_text": "CRJ (Cash Receipts Journal)", "is_correct": true, "explanation": "The Cash Receipts Journal (CRJ) records ALL cash received, including cash sales, collection of accounts receivable, and owner investments." },
+            { "sequence": 3, "answer_text": "PJ (Purchases Journal)", "is_correct": false, "explanation": "The Purchases Journal records credit purchases of merchandise/supplies, not cash sales." }
+          ]
+        },
+        {
+          "sequence": 14,
+          "question_text": "Where do you record a CREDIT purchase of supplies (buy now, pay later)?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "CDJ (Cash Disbursements Journal)", "is_correct": false, "explanation": "The CDJ records cash going OUT — since no cash is paid yet in a credit purchase, the CDJ is not used." },
+            { "sequence": 2, "answer_text": "PJ (Purchases Journal)", "is_correct": true, "explanation": "The Purchases Journal (PJ) records all purchases made on account (credit) — both merchandise and supplies bought from suppliers with payment due later." },
+            { "sequence": 3, "answer_text": "SJ (Sales Journal)", "is_correct": false, "explanation": "The Sales Journal records credit SALES, not credit purchases." }
+          ]
+        },
+        {
+          "sequence": 15,
+          "question_text": "What is the source document for a Sales Journal entry?",
+          "question_type": "multiple_choice",
+          "answers": [
+            { "sequence": 1, "answer_text": "Official Receipt", "is_correct": false, "explanation": "An Official Receipt is issued when cash is received — it is the source document for the Cash Receipts Journal, not the Sales Journal." },
+            { "sequence": 2, "answer_text": "Sales Invoice", "is_correct": true, "explanation": "A Sales Invoice is the source document for credit sales. It is given to the customer as evidence of the goods/services sold on account and is used to record the entry in the Sales Journal." },
+            { "sequence": 3, "answer_text": "Check", "is_correct": false, "explanation": "A Check is a written order to pay cash — it is the source document for the Cash Disbursements Journal." }
+          ]
+        }
+      ]
+    },
+    {
+      "competency_id": 5,
+      "competency_code": "ACC_005",
+      "competency_name": "Business Transactions and Their Analysis",
+      "assessment_title": "Module Quiz: Business Transactions and Their Analysis (Steps 1–3)",
+      "passing_score": 75,
+      "questions": [
+        { "sequence": 1, "question_text": "Which statement BEST describes the relationship between Steps 1, 2, and 3 of the accounting cycle?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "They are independent and can be done in any order", "is_correct": false, "explanation": "Each step depends on the previous one; you cannot post without first journalizing." }, { "sequence": 2, "answer_text": "Each step depends on the previous: you must analyze before journalizing, and journalize before posting", "is_correct": true, "explanation": "Steps 1-3 are sequential: analyze the transaction, record it in the journal, then transfer (post) to the ledger. Skipping any step would break the accounting cycle." }, { "sequence": 3, "answer_text": "Step 3 can replace Steps 1 and 2 if the accounts are known", "is_correct": false, "explanation": "Step 3 (posting) relies entirely on journal entries from Step 2; it cannot replace prior steps." }, { "sequence": 4, "answer_text": "Only Step 1 and Step 3 are required; Step 2 is optional", "is_correct": false, "explanation": "Step 2 (journalizing) is mandatory; it creates the chronological record used for posting and auditing." } ] },
+        { "sequence": 2, "question_text": "What is the correct description of Step 1, Step 2, and Step 3 of the accounting cycle?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Post → Analyze → Journalize", "is_correct": false, "explanation": "Posting comes after journalizing, not before." }, { "sequence": 2, "answer_text": "Journalize → Post → Analyze", "is_correct": false, "explanation": "Analysis must come first — you must identify the accounts affected before journalizing." }, { "sequence": 3, "answer_text": "Analyze → Journalize → Post", "is_correct": true, "explanation": "The correct sequence is: Step 1 Analyze (identify affected accounts and effects), Step 2 Journalize (record the debit and credit entry), Step 3 Post (transfer to the general ledger)." }, { "sequence": 4, "answer_text": "Analyze → Post → Journalize", "is_correct": false, "explanation": "Posting to the ledger requires a journal entry; you cannot post before journalizing." } ] },
+        { "sequence": 3, "question_text": "Which of the following is a misconception about source documents?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "An official receipt is a valid source document", "is_correct": false, "explanation": "An official receipt is indeed a valid source document — it evidences a cash transaction." }, { "sequence": 2, "answer_text": "Any informal note can serve as a source document", "is_correct": true, "explanation": "This is a misconception. Source documents must be formal, verifiable evidence (official receipts, sales invoices, checks, bank deposit slips). Informal notes lack the objectivity required by the Objectivity Principle." }, { "sequence": 3, "answer_text": "A check serves as evidence of a cash payment", "is_correct": false, "explanation": "A check is a valid source document — it is a written order to pay a specified amount and evidences a cash disbursement." }, { "sequence": 4, "answer_text": "A purchase invoice evidences a credit purchase", "is_correct": false, "explanation": "A purchase invoice is indeed the source document for credit purchases from suppliers." } ] },
+        { "sequence": 4, "question_text": "What happens if an accountant skips Step 2 (journalizing) and posts transactions directly to the ledger?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "The financial statements will still be accurate", "is_correct": false, "explanation": "Without a journal, there is no way to verify the accuracy or completeness of transactions." }, { "sequence": 2, "answer_text": "The trial balance will automatically correct the errors", "is_correct": false, "explanation": "The trial balance only checks mathematical equality; it cannot detect missing or misapplied entries." }, { "sequence": 3, "answer_text": "There will be no chronological record linking transactions to their debits and credits", "is_correct": true, "explanation": "The journal provides the audit trail — a dated, chronological record of every transaction. Without it, there is no way to trace a ledger balance back to its source, making audits and error correction impossible." }, { "sequence": 4, "answer_text": "Only the Cash account will be affected", "is_correct": false, "explanation": "All accounts would be affected; the entire system's traceability would be compromised." } ] },
+        { "sequence": 5, "question_text": "Which of the following accounts uses a DEBIT to record an INCREASE?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Loans Payable", "is_correct": false, "explanation": "Loans Payable is a liability with a normal CREDIT balance. To increase a liability, you credit it." }, { "sequence": 2, "answer_text": "Unearned Revenue", "is_correct": false, "explanation": "Unearned Revenue is a liability with a normal CREDIT balance. Increases are recorded as credits." }, { "sequence": 3, "answer_text": "Owner's Capital", "is_correct": false, "explanation": "Owner's Capital has a normal CREDIT balance. Investments by the owner are recorded as credits to Capital." }, { "sequence": 4, "answer_text": "Accounts Receivable", "is_correct": true, "explanation": "Accounts Receivable is an asset. Asset accounts have normal DEBIT balances, so increases are recorded as debits. When a business earns revenue on account, Accounts Receivable is debited." } ] },
+        { "sequence": 6, "question_text": "A business receives cash from a client for services to be performed in the future. What liability account is created?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Accounts Payable", "is_correct": false, "explanation": "Accounts Payable represents money owed to suppliers for goods/services already received." }, { "sequence": 2, "answer_text": "Notes Payable", "is_correct": false, "explanation": "Notes Payable is a formal written promissory debt to a lender, not for services to be performed." }, { "sequence": 3, "answer_text": "Unearned Revenue", "is_correct": true, "explanation": "Unearned Revenue (Deferred Revenue) is a liability created when cash is received BEFORE the service is performed. The business owes the client a service. Once the service is rendered, the liability decreases and revenue is recognized." }, { "sequence": 4, "answer_text": "Rent Payable", "is_correct": false, "explanation": "Rent Payable is a liability for accrued rent owed, not for advance payments from clients." } ] },
+        { "sequence": 7, "question_text": "After posting all journal entries, the total of all debit balances in the ledger should:", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Exceed the total of all credit balances", "is_correct": false, "explanation": "Debit totals exceeding credits would mean the accounting equation is not balanced." }, { "sequence": 2, "answer_text": "Be less than the total of all credit balances", "is_correct": false, "explanation": "Credit totals exceeding debits would also mean the equation is unbalanced." }, { "sequence": 3, "answer_text": "Equal the total of all credit balances", "is_correct": true, "explanation": "After posting, the sum of all debit balances must equal the sum of all credit balances in the ledger. This equality confirms no posting errors occurred and is verified by the Trial Balance (Step 4)." }, { "sequence": 4, "answer_text": "Equal zero", "is_correct": false, "explanation": "Debit balances equal credit balances, not zero. Both totals are typically large positive numbers that happen to be equal." } ] },
+        { "sequence": 8, "question_text": "The P.R. column in both the journal and the ledger serves to:", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Show the total balance of every account", "is_correct": false, "explanation": "Account balances are shown in the Balance column of the ledger, not the P.R. column." }, { "sequence": 2, "answer_text": "Link the journal and ledger to each other for audit and verification purposes", "is_correct": true, "explanation": "The Posting Reference (P.R.) column creates a cross-reference between the Journal and Ledger. The Journal's P.R. shows the Ledger account number it was posted to; the Ledger's Ref. shows the Journal page it came from." }, { "sequence": 3, "answer_text": "Record the name of the bookkeeper", "is_correct": false, "explanation": "The bookkeeper's name is not recorded in the P.R. column." }, { "sequence": 4, "answer_text": "Show whether the transaction involved cash", "is_correct": false, "explanation": "The P.R. column shows account numbers or journal references, not whether cash was involved." } ] },
+        { "sequence": 9, "question_text": "Which of the following is NOT a step covered in CO5 (Steps 1-3)?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Analyzing business transactions", "is_correct": false, "explanation": "Analyzing transactions is Step 1 and IS covered in CO5." }, { "sequence": 2, "answer_text": "Journalizing business transactions", "is_correct": false, "explanation": "Journalizing is Step 2 and IS covered in CO5." }, { "sequence": 3, "answer_text": "Preparing the trial balance", "is_correct": true, "explanation": "Preparing the trial balance is Step 4 — it is covered in CO6, not CO5. CO5 covers only Steps 1 (Analyze), 2 (Journalize), and 3 (Post)." }, { "sequence": 4, "answer_text": "Posting to the general ledger", "is_correct": false, "explanation": "Posting is Step 3 and IS covered in CO5." } ] },
+        { "sequence": 10, "question_text": "A business transaction involving a cash payment for an expense affects the accounting equation as follows:", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Assets increase; Owner's Equity increases", "is_correct": false, "explanation": "Paying cash for an expense DECREASES both assets and equity, not increases them." }, { "sequence": 2, "answer_text": "Assets decrease; Liabilities increase", "is_correct": false, "explanation": "Paying cash for an expense decreases assets, but no new liability is created when cash is paid." }, { "sequence": 3, "answer_text": "Assets decrease; Owner's Equity decreases", "is_correct": true, "explanation": "When cash is paid for an expense: Assets (Cash) decrease and Owner's Equity decreases (expenses reduce net income, which reduces equity). The equation remains balanced." }, { "sequence": 4, "answer_text": "Liabilities decrease; Owner's Equity decreases", "is_correct": false, "explanation": "This describes paying off a liability (Accrued Expense), not a direct cash payment for an expense." } ] },
+        { "sequence": 11, "question_text": "A business owner invests ₱40,000 cash to start a new service business. Which effect on the accounting equation is correct?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Cash +₱40,000; Loans Payable +₱40,000", "is_correct": false, "explanation": "An owner's investment is not a loan; it does not create a liability." }, { "sequence": 2, "answer_text": "Cash +₱40,000; Owner's Capital +₱40,000", "is_correct": true, "explanation": "An owner's cash investment increases the asset Cash and simultaneously increases Owner's Capital (equity). The journal entry is: Debit Cash / Credit Owner's Capital." }, { "sequence": 3, "answer_text": "Owner's Capital +₱40,000; Accounts Payable +₱40,000", "is_correct": false, "explanation": "No liability is created from an owner's investment." }, { "sequence": 4, "answer_text": "Cash −₱40,000; Owner's Equity −₱40,000", "is_correct": false, "explanation": "Cash comes INTO the business (increases), not out." } ] },
+        { "sequence": 12, "question_text": "A service business pays ₱5,000 for one month's office rent in cash. What is the correct journal entry?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Debit Cash ₱5,000; Credit Rent Expense ₱5,000", "is_correct": false, "explanation": "Cash is paid OUT (decreases), so it must be CREDITED. Rent Expense increases, so it is DEBITED." }, { "sequence": 2, "answer_text": "Debit Rent Expense ₱5,000; Credit Accounts Payable ₱5,000", "is_correct": false, "explanation": "Since cash was paid immediately, Accounts Payable should not be used." }, { "sequence": 3, "answer_text": "Debit Rent Expense ₱5,000; Credit Cash ₱5,000", "is_correct": true, "explanation": "Rent Expense is debited (expense increases = debit). Cash is credited (asset decreases = credit). Total: Assets −₱5,000, Owner's Equity −₱5,000." }, { "sequence": 4, "answer_text": "Debit Cash ₱5,000; Credit Owner's Capital ₱5,000", "is_correct": false, "explanation": "Paying rent is not an owner's investment; it is an expense." } ] },
+        { "sequence": 13, "question_text": "A business purchases cleaning supplies worth ₱2,000 on account. What is the effect on the accounting equation?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Assets (Supplies) +₱2,000; Owner's Equity −₱2,000", "is_correct": false, "explanation": "No expense is recognized yet when supplies are purchased; they become Supplies Expense only when used." }, { "sequence": 2, "answer_text": "Assets (Supplies) +₱2,000; Liabilities (Accounts Payable) +₱2,000", "is_correct": true, "explanation": "Buying on account: Supplies (asset) increases by ₱2,000 on the left, and Accounts Payable (liability) increases by ₱2,000 on the right. Both sides increase equally." }, { "sequence": 3, "answer_text": "Assets (Cash) −₱2,000; Liabilities (Accounts Payable) +₱2,000", "is_correct": false, "explanation": "No cash was paid — the purchase was on account, so Cash does not decrease." }, { "sequence": 4, "answer_text": "No effect because no cash was paid", "is_correct": false, "explanation": "A transaction occurs when goods are received on credit. The obligation to pay exists immediately, creating both an asset and a liability." } ] },
+        { "sequence": 14, "question_text": "A Cash ledger account shows: Beginning Balance ₱0; Debit posting of ₱25,000; Credit posting of ₱8,000. What is the ending balance?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "₱8,000 Debit", "is_correct": false, "explanation": "₱8,000 is only the credit side; it does not account for the debit posting." }, { "sequence": 2, "answer_text": "₱25,000 Credit", "is_correct": false, "explanation": "Cash has a normal debit balance; ₱25,000 debit is the inflow, not the balance." }, { "sequence": 3, "answer_text": "₱17,000 Debit", "is_correct": true, "explanation": "Ending Balance = ₱0 + ₱25,000 (debit) − ₱8,000 (credit) = ₱17,000 Debit. Cash has a normal debit balance." }, { "sequence": 4, "answer_text": "₱33,000 Debit", "is_correct": false, "explanation": "₱33,000 would be the sum of both sides, not the net balance." } ] },
+        { "sequence": 15, "question_text": "A business pays off ₱4,000 of its Accounts Payable in cash. What is the correct journal entry?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Debit Cash ₱4,000; Credit Accounts Payable ₱4,000", "is_correct": false, "explanation": "Cash is paid OUT (decreases), so it is CREDITED, not debited." }, { "sequence": 2, "answer_text": "Debit Accounts Payable ₱4,000; Credit Cash ₱4,000", "is_correct": true, "explanation": "Paying off a liability: Accounts Payable (liability) decreases — debit it. Cash (asset) decreases — credit it. Effect: Assets −₱4,000, Liabilities −₱4,000." }, { "sequence": 3, "answer_text": "Debit Expense ₱4,000; Credit Cash ₱4,000", "is_correct": false, "explanation": "Paying a previously recorded liability is not an expense — the expense was already recorded when the liability was created." }, { "sequence": 4, "answer_text": "Debit Accounts Payable ₱4,000; Credit Revenue ₱4,000", "is_correct": false, "explanation": "Revenue is earned by performing services, not by paying debts." } ] }
+      ]
+    },
+    {
+      "competency_id": 6,
+      "competency_code": "ACC_006",
+      "competency_name": "Preparation of Trial Balance",
+      "assessment_title": "Module Quiz: Trial Balance and Adjusting Entries (Steps 4–5)",
+      "passing_score": 75,
+      "questions": [
+        { "sequence": 1, "question_text": "Which step of the accounting cycle directly follows Step 4 (Trial Balance)?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Preparing the financial statements", "is_correct": false, "explanation": "Financial statements come in Step 7, not immediately after the trial balance." }, { "sequence": 2, "answer_text": "Journalizing and posting all transactions", "is_correct": false, "explanation": "That is Step 2 and 3, which come before the trial balance." }, { "sequence": 3, "answer_text": "Journalizing and posting adjusting entries", "is_correct": true, "explanation": "Step 5 immediately follows the trial balance (Step 4). Adjusting entries are made to update account balances before financial statements are prepared." }, { "sequence": 4, "answer_text": "Closing temporary accounts", "is_correct": false, "explanation": "Closing entries (Step 8) come after the financial statements, not right after the trial balance." } ] },
+        { "sequence": 2, "question_text": "Which statement about the trial balance is TRUE?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "A balanced trial balance confirms all transactions were recorded to the correct accounts", "is_correct": false, "explanation": "A balanced trial balance only proves mathematical equality. Errors such as posting to the wrong account or omitting a transaction entirely would not be detected." }, { "sequence": 2, "answer_text": "A balanced trial balance only confirms mathematical equality of total debits and credits", "is_correct": true, "explanation": "The trial balance is a mathematical check only — it verifies that total debits equal total credits. It does NOT guarantee that all transactions were recorded correctly or completely." }, { "sequence": 3, "answer_text": "The trial balance lists only asset and liability accounts", "is_correct": false, "explanation": "The trial balance lists ALL accounts with balances — assets, liabilities, equity, revenues, and expenses." }, { "sequence": 4, "answer_text": "The trial balance is prepared after the financial statements", "is_correct": false, "explanation": "The trial balance is prepared BEFORE financial statements as a prerequisite check." } ] },
+        { "sequence": 3, "question_text": "Where should Accumulated Depreciation — Equipment be placed in the trial balance?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Debit column, because it relates to equipment (an asset)", "is_correct": false, "explanation": "Though it is associated with an asset, Accumulated Depreciation is a contra-asset with a CREDIT normal balance." }, { "sequence": 2, "answer_text": "Credit column, because it is a contra-asset account", "is_correct": true, "explanation": "Accumulated Depreciation is a contra-asset account with a normal CREDIT balance. It offsets the asset's cost, and its balance is placed in the credit column of the trial balance." }, { "sequence": 3, "answer_text": "Debit column, because all depreciation is an expense", "is_correct": false, "explanation": "Depreciation EXPENSE has a debit balance. Accumulated DEPRECIATION (the contra-asset) has a credit balance — they are different accounts." }, { "sequence": 4, "answer_text": "It is not listed in the trial balance", "is_correct": false, "explanation": "Accumulated Depreciation is a permanent account and must appear in every trial balance once it has a balance." } ] },
+        { "sequence": 4, "question_text": "Which of the following accounts belongs in the DEBIT column of the trial balance?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Salaries Payable", "is_correct": false, "explanation": "Salaries Payable is a liability with a normal CREDIT balance." }, { "sequence": 2, "answer_text": "Consulting Fees Earned", "is_correct": false, "explanation": "Consulting Fees Earned is a revenue account with a normal CREDIT balance." }, { "sequence": 3, "answer_text": "Owner's Capital", "is_correct": false, "explanation": "Owner's Capital is an equity account with a normal CREDIT balance." }, { "sequence": 4, "answer_text": "Insurance Expense", "is_correct": true, "explanation": "Insurance Expense is an expense account with a normal DEBIT balance. All expense accounts appear in the debit column of the trial balance. Memory aid: ADE = Assets, Drawings, Expenses → Debit normal balance." } ] },
+        { "sequence": 5, "question_text": "Which type of adjusting entry is needed for employees who earned wages in the last week of the month but will not be paid until next month?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Prepaid Expense", "is_correct": false, "explanation": "Prepaid expense adjustments are for costs paid in advance that have been partially used." }, { "sequence": 2, "answer_text": "Unearned Revenue", "is_correct": false, "explanation": "Unearned revenue adjustments are for cash collected in advance for services not yet rendered." }, { "sequence": 3, "answer_text": "Accrued Expense", "is_correct": true, "explanation": "Accrued Expense adjustments are for costs incurred (services received) but not yet paid. Wages earned but unpaid are an accrued expense. The adjusting entry: Debit Salaries Expense / Credit Salaries Payable." }, { "sequence": 4, "answer_text": "Depreciation", "is_correct": false, "explanation": "Depreciation adjustments allocate the cost of long-term assets over their useful life." } ] },
+        { "sequence": 6, "question_text": "A business completes a service for a client on the last day of the month but will not collect payment until next month. Which adjusting entry is needed?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Prepaid Expense", "is_correct": false, "explanation": "Prepaid expenses are costs paid in advance by the business, not services rendered without collection." }, { "sequence": 2, "answer_text": "Accrued Revenue", "is_correct": true, "explanation": "Accrued Revenue (Accrued Income) is revenue earned during the current period but not yet collected. The adjusting entry: Debit Accounts Receivable / Credit Service Revenue." }, { "sequence": 3, "answer_text": "Unearned Revenue", "is_correct": false, "explanation": "Unearned Revenue is for cash received BEFORE services are performed — the opposite situation." }, { "sequence": 4, "answer_text": "Depreciation", "is_correct": false, "explanation": "Depreciation allocates asset cost over time; it is unrelated to collecting service revenue." } ] },
+        { "sequence": 7, "question_text": "Which correctly describes the relationship between the trial balance and adjusting entries?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "The trial balance is prepared after adjusting entries have been posted", "is_correct": false, "explanation": "The UNADJUSTED trial balance is prepared BEFORE adjusting entries. The adjusted trial balance comes after adjusting entries." }, { "sequence": 2, "answer_text": "Adjusting entries are made because the trial balance detected mathematical errors", "is_correct": false, "explanation": "Adjusting entries are made to apply accrual accounting, not to correct mathematical errors." }, { "sequence": 3, "answer_text": "The trial balance confirms equality first; adjusting entries then update balances before financial statements are prepared", "is_correct": true, "explanation": "The unadjusted trial balance (Step 4) confirms ledger balance equality. Adjusting entries (Step 5) then update account balances for accruals, deferrals, and depreciation, producing the adjusted trial balance used for financial statements." }, { "sequence": 4, "answer_text": "Adjusting entries are used to prepare the trial balance from scratch", "is_correct": false, "explanation": "Adjusting entries modify existing balances; they do not create the trial balance from scratch." } ] },
+        { "sequence": 8, "question_text": "An account with a credit balance of ₱7,500 is mistakenly placed in the DEBIT column of the trial balance. What is the effect?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "No effect — the totals will still balance", "is_correct": false, "explanation": "Placing a credit-balance account in the debit column will distort both totals." }, { "sequence": 2, "answer_text": "The debit column will be overstated by ₱7,500 and the trial balance will not balance", "is_correct": true, "explanation": "The debit column is overstated by ₱7,500 (wrong column) PLUS the credit column is understated by ₱7,500 (missing from there), creating a total difference of ₱15,000 between the two columns." }, { "sequence": 3, "answer_text": "The credit column will increase by ₱7,500 automatically", "is_correct": false, "explanation": "Moving the amount to the debit column means it is removed from the credit column — the credit column decreases." }, { "sequence": 4, "answer_text": "The account will automatically switch to the correct column", "is_correct": false, "explanation": "The trial balance does not self-correct. The accountant must find and fix the error manually." } ] },
+        { "sequence": 9, "question_text": "After posting all adjusting entries to the ledger, what is the NEXT action taken?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Re-prepare the unadjusted trial balance", "is_correct": false, "explanation": "There is no need to re-prepare the unadjusted trial balance after adjusting entries." }, { "sequence": 2, "answer_text": "Compile updated balances into the adjusted trial balance", "is_correct": true, "explanation": "After all adjusting entries are posted, the updated ledger balances are compiled into the Adjusted Trial Balance (Step 6). This confirms debits still equal credits after adjustments." }, { "sequence": 3, "answer_text": "Prepare the general journal", "is_correct": false, "explanation": "The general journal has already been used for adjusting entries; preparing it again is not the next step." }, { "sequence": 4, "answer_text": "Close all expense and revenue accounts immediately", "is_correct": false, "explanation": "Closing entries (Step 8) come after financial statements (Step 7), not immediately after adjusting entries." } ] },
+        { "sequence": 10, "question_text": "Which memory aid correctly groups accounts by their normal balance?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "ACE = Debit; LRD = Credit", "is_correct": false, "explanation": "This grouping is incorrect; Revenue has a credit balance and Drawings has a debit balance." }, { "sequence": 2, "answer_text": "ALL = Credit; DER = Debit", "is_correct": false, "explanation": "This grouping is incorrect." }, { "sequence": 3, "answer_text": "ADE = Debit (Assets, Drawings, Expenses); LCR = Credit (Liabilities, Capital, Revenues)", "is_correct": true, "explanation": "ADE = Assets, Drawings, Expenses have DEBIT normal balances. LCR = Liabilities, Capital (Equity), Revenues have CREDIT normal balances. This is the standard mnemonic for remembering normal account balances." }, { "sequence": 4, "answer_text": "ALCE = Debit; DRE = Credit", "is_correct": false, "explanation": "This grouping is incorrect; Liabilities and Capital/Equity have credit, not debit, normal balances." } ] },
+        { "sequence": 11, "question_text": "A business paid ₱24,000 for a one-year lease on July 1. By July 31, one month of the lease has been used. What is the correct adjusting entry?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Debit Prepaid Rent ₱2,000; Credit Cash ₱2,000", "is_correct": false, "explanation": "No cash changes hands in an adjusting entry. Cash was already paid on July 1." }, { "sequence": 2, "answer_text": "Debit Rent Expense ₱2,000; Credit Prepaid Rent ₱2,000", "is_correct": true, "explanation": "Monthly amount = ₱24,000 ÷ 12 = ₱2,000. One month of the prepaid insurance has expired/been used, so the asset (Prepaid Rent) decreases and the expense (Rent Expense) increases." }, { "sequence": 3, "answer_text": "Debit Cash ₱2,000; Credit Rent Expense ₱2,000", "is_correct": false, "explanation": "The adjusting entry for a prepaid expense does not involve Cash." }, { "sequence": 4, "answer_text": "Debit Rent Expense ₱24,000; Credit Prepaid Rent ₱24,000", "is_correct": false, "explanation": "The full ₱24,000 is for 12 months; only 1 month (₱2,000) has been used in July." } ] },
+        { "sequence": 12, "question_text": "Office equipment costs ₱36,000 with a useful life of 3 years and no salvage value. What is the correct MONTHLY depreciation adjusting entry?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Debit Depreciation Expense ₱1,000; Credit Accumulated Depreciation ₱1,000", "is_correct": true, "explanation": "Annual depreciation = ₱36,000 ÷ 3 years = ₱12,000/year. Monthly = ₱12,000 ÷ 12 = ₱1,000. The entry debits Depreciation Expense (increases expense) and credits Accumulated Depreciation (reduces book value of asset)." }, { "sequence": 2, "answer_text": "Debit Equipment ₱1,000; Credit Depreciation Expense ₱1,000", "is_correct": false, "explanation": "Equipment is not debited for depreciation. The asset's cost remains unchanged; only Accumulated Depreciation (contra-asset) is credited." }, { "sequence": 3, "answer_text": "Debit Accumulated Depreciation ₱1,000; Credit Depreciation Expense ₱1,000", "is_correct": false, "explanation": "This reverses the correct entry — Depreciation Expense has a debit normal balance and Accumulated Depreciation has a credit normal balance." }, { "sequence": 4, "answer_text": "Debit Depreciation Expense ₱36,000; Credit Equipment ₱36,000", "is_correct": false, "explanation": "Recording the full cost as an expense in one month would violate the Matching Principle. Also, Equipment should not be directly credited." } ] },
+        { "sequence": 13, "question_text": "A business collected ₱9,000 advance payment for 3 months of service on October 1. By October 31, one month's service has been performed. What adjusting entry is recorded?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Debit Service Revenue ₱3,000; Credit Unearned Revenue ₱3,000", "is_correct": false, "explanation": "Revenue is recognized when earned, not reversed. Unearned Revenue should decrease (debit), not increase (credit)." }, { "sequence": 2, "answer_text": "Debit Cash ₱3,000; Credit Service Revenue ₱3,000", "is_correct": false, "explanation": "No cash changes hands in this adjusting entry — cash was already received on October 1." }, { "sequence": 3, "answer_text": "Debit Unearned Revenue ₱3,000; Credit Service Revenue ₱3,000", "is_correct": true, "explanation": "1 month earned = ₱9,000 ÷ 3 = ₱3,000. The liability (Unearned Revenue) decreases by ₱3,000 (debit) because the obligation is fulfilled, and Revenue is recognized (credit)." }, { "sequence": 4, "answer_text": "Debit Service Revenue ₱9,000; Credit Unearned Revenue ₱9,000", "is_correct": false, "explanation": "Only 1/3 of the service has been performed. The full ₱9,000 would be recognized only after all 3 months of service are complete." } ] },
+        { "sequence": 14, "question_text": "Employees earned ₱6,000 in salaries during the last 3 days of the month. Payday falls in the next accounting period. What is the correct adjusting entry?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Debit Cash ₱6,000; Credit Salaries Expense ₱6,000", "is_correct": false, "explanation": "Cash is not paid yet — payday is next period. This entry is incorrect in both accounts and direction." }, { "sequence": 2, "answer_text": "Debit Salaries Expense ₱6,000; Credit Salaries Payable ₱6,000", "is_correct": true, "explanation": "Salaries Expense is debited to recognize the cost in the current period (when earned by employees). Salaries Payable (liability) is credited because the cash will be paid next period." }, { "sequence": 3, "answer_text": "Debit Salaries Payable ₱6,000; Credit Cash ₱6,000", "is_correct": false, "explanation": "This would be the entry when cash is actually PAID next period, not the adjusting entry." }, { "sequence": 4, "answer_text": "Debit Salaries Expense ₱6,000; Credit Cash ₱6,000", "is_correct": false, "explanation": "Cash has not been paid yet — crediting Cash reduces the asset, but no cash left the business." } ] },
+        { "sequence": 15, "question_text": "A business performed a consulting service worth ₱4,500 on the last day of the month. No cash has been received and no invoice has been issued yet. Which adjusting entry is correct?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Debit Cash ₱4,500; Credit Consulting Revenue ₱4,500", "is_correct": false, "explanation": "No cash was received yet. Debiting Cash would overstate assets." }, { "sequence": 2, "answer_text": "Debit Consulting Revenue ₱4,500; Credit Accounts Receivable ₱4,500", "is_correct": false, "explanation": "This entry is backward. Revenue should be credited (recognized), and Accounts Receivable should be debited." }, { "sequence": 3, "answer_text": "Debit Accounts Receivable ₱4,500; Credit Consulting Revenue ₱4,500", "is_correct": true, "explanation": "This is an accrued revenue entry. The service was earned but not yet collected. Accounts Receivable (asset) is debited to recognize the right to collect, and Consulting Revenue is credited to recognize the income in the current period per the accrual basis." }, { "sequence": 4, "answer_text": "No entry needed until cash is received", "is_correct": false, "explanation": "Under the accrual basis, revenue is recognized when EARNED, not when cash is received. An adjusting entry is required." } ] }
+      ]
+    },
+    {
+      "competency_id": 7,
+      "competency_code": "ACC_007",
+      "competency_name": "Completion of the Accounting Cycle",
+      "assessment_title": "Module Quiz: Completion of the Accounting Cycle (Steps 6–10)",
+      "passing_score": 75,
+      "questions": [
+        { "sequence": 1, "question_text": "Which is the correct sequence of the LAST five steps of the accounting cycle?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Closing entries → Adjusted TB → Financial Statements → Post-closing TB → Reversing entries", "is_correct": false, "explanation": "The Adjusted Trial Balance comes before financial statements and closing entries, not after." }, { "sequence": 2, "answer_text": "Adjusted TB → Financial Statements → Closing entries → Post-closing TB → Reversing entries", "is_correct": true, "explanation": "The correct sequence of Steps 6-10: Step 6 (Adjusted Trial Balance) → Step 7 (Financial Statements) → Step 8 (Closing Entries) → Step 9 (Post-Closing Trial Balance) → Step 10 (Reversing Entries)." }, { "sequence": 3, "answer_text": "Financial Statements → Adjusted TB → Closing entries → Reversing entries → Post-closing TB", "is_correct": false, "explanation": "Financial statements cannot be prepared before the adjusted trial balance." }, { "sequence": 4, "answer_text": "Adjusted TB → Closing entries → Financial Statements → Post-closing TB → Reversing entries", "is_correct": false, "explanation": "Financial statements are prepared before closing entries, not after." } ] },
+        { "sequence": 2, "question_text": "Financial statements under PFRS are prepared directly from the:", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Original trial balance", "is_correct": false, "explanation": "The original (unadjusted) trial balance does not include adjustments for accruals, deferrals, and depreciation." }, { "sequence": 2, "answer_text": "Post-closing trial balance", "is_correct": false, "explanation": "The post-closing trial balance is prepared AFTER closing entries — financial statements cannot be prepared from it because temporary accounts have already been zeroed out." }, { "sequence": 3, "answer_text": "Adjusted trial balance", "is_correct": true, "explanation": "Financial statements are prepared from the ADJUSTED trial balance (Step 6), which contains updated balances after all adjusting entries. The Income Statement uses revenue and expense accounts; the Balance Sheet uses asset, liability, and equity accounts." }, { "sequence": 4, "answer_text": "General journal", "is_correct": false, "explanation": "The general journal records individual entries in chronological order; it is not a source for preparing financial statements directly." } ] },
+        { "sequence": 3, "question_text": "Which of the following is a temporary (nominal) account?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Accounts Payable", "is_correct": false, "explanation": "Accounts Payable is a Liability — a permanent account that carries its balance forward to the next period." }, { "sequence": 2, "answer_text": "Equipment", "is_correct": false, "explanation": "Equipment is an Asset — a permanent account." }, { "sequence": 3, "answer_text": "Owner's Capital", "is_correct": false, "explanation": "Owner's Capital is an equity account — a permanent account that carries forward." }, { "sequence": 4, "answer_text": "Salaries Expense", "is_correct": true, "explanation": "Salaries Expense is a temporary (nominal) account. It accumulates expenses only for the current period and is closed to zero via closing entries at the end of each accounting period." } ] },
+        { "sequence": 4, "question_text": "In Step 3 of the closing entry process, if the business has a net LOSS, the closing entry is:", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Debit Income Summary / Credit Capital", "is_correct": false, "explanation": "This entry is used when there is a net INCOME (credit to capital increases equity)." }, { "sequence": 2, "answer_text": "Debit Capital / Credit Income Summary", "is_correct": true, "explanation": "A net loss means total expenses exceed revenues. After Steps 1 and 2, Income Summary has a DEBIT balance (the net loss). To close it: Debit Capital (reducing equity for the loss) / Credit Income Summary (zeroing it out)." }, { "sequence": 3, "answer_text": "Debit Revenue / Credit Capital", "is_correct": false, "explanation": "Revenue accounts are closed in Step 1, not Step 3." }, { "sequence": 4, "answer_text": "Debit Income Summary / Credit Revenue", "is_correct": false, "explanation": "Revenue accounts were already closed to Income Summary in Step 1." } ] },
+        { "sequence": 5, "question_text": "The Owner's Drawing account is closed:", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "To Income Summary in Step 2", "is_correct": false, "explanation": "Step 2 closes expense accounts to Income Summary. Drawings is a contra-equity account, not an expense." }, { "sequence": 2, "answer_text": "Directly to Capital in Step 4", "is_correct": true, "explanation": "Drawings is closed DIRECTLY to Owner's Capital in Step 4 (not through Income Summary). The entry: Debit Capital / Credit Drawing. This reduces the capital account by the total amount the owner withdrew during the period." }, { "sequence": 3, "answer_text": "To Revenue accounts in Step 1", "is_correct": false, "explanation": "Step 1 closes revenue accounts TO Income Summary, not the other way around." }, { "sequence": 4, "answer_text": "To Expenses in Step 3", "is_correct": false, "explanation": "Step 3 closes the Income Summary balance to Capital. Drawings is handled in Step 4." } ] },
+        { "sequence": 6, "question_text": "Which account would appear in the POST-CLOSING trial balance?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Utilities Expense", "is_correct": false, "explanation": "Utilities Expense is a temporary account closed to zero; it does NOT appear in the post-closing trial balance." }, { "sequence": 2, "answer_text": "Owner's Drawings", "is_correct": false, "explanation": "Owner's Drawings is a temporary account closed directly to Capital; it does NOT appear in the post-closing trial balance." }, { "sequence": 3, "answer_text": "Interest Income", "is_correct": false, "explanation": "Interest Income is a revenue (temporary) account closed to zero; it does NOT appear in the post-closing trial balance." }, { "sequence": 4, "answer_text": "Accounts Receivable", "is_correct": true, "explanation": "Accounts Receivable is a permanent (real) asset account. Only permanent accounts — Assets, Liabilities, and the updated Owner's Capital — appear in the post-closing trial balance." } ] },
+        { "sequence": 7, "question_text": "The balances in the post-closing trial balance become the _______ for the new accounting period.", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Closing balances", "is_correct": false, "explanation": "These balances are closing balances for the CURRENT period, but they become opening balances for the NEXT period." }, { "sequence": 2, "answer_text": "Adjusted balances", "is_correct": false, "explanation": "Adjusted balances are the balances from the adjusted trial balance (Step 6), not the post-closing trial balance." }, { "sequence": 3, "answer_text": "Opening balances", "is_correct": true, "explanation": "The balances in the post-closing trial balance are the OPENING balances for the next accounting period. This ensures continuity in the accounting records from one period to the next." }, { "sequence": 4, "answer_text": "Estimated balances", "is_correct": false, "explanation": "These are actual, final balances — not estimates." } ] },
+        { "sequence": 8, "question_text": "Which type of adjusting entry requires a reversing entry?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Depreciation expense", "is_correct": false, "explanation": "Depreciation does not require a reversing entry because it does not create a future cash transaction that needs to be split." }, { "sequence": 2, "answer_text": "Bad Debts Expense", "is_correct": false, "explanation": "Bad Debts Expense adjustments do not require reversing entries." }, { "sequence": 3, "answer_text": "Accrued Expenses", "is_correct": true, "explanation": "Accrued Expenses (e.g., accrued salaries) require reversing entries because the cash payment will occur in the NEXT period. The reversing entry prevents double-recording of the expense when cash is eventually paid." }, { "sequence": 4, "answer_text": "Prepayments using the Asset Method", "is_correct": false, "explanation": "Prepayments using the Asset Method (initial debit to the asset account) do NOT require reversing entries. Only the Expense Method requires a reversal." } ] },
+        { "sequence": 9, "question_text": "Reversing entries are the exact _______ of certain adjusting entries.", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Copy", "is_correct": false, "explanation": "A copy would record the same debit and credit direction — reversing entries swap the sides." }, { "sequence": 2, "answer_text": "Summary", "is_correct": false, "explanation": "Reversing entries are not summaries; they are mirror-image transactions." }, { "sequence": 3, "answer_text": "Opposite", "is_correct": true, "explanation": "Reversing entries are the EXACT OPPOSITE (mirror image) of certain adjusting entries — every debit becomes a credit and every credit becomes a debit, with the same amounts. They are dated the first day of the new accounting period." }, { "sequence": 4, "answer_text": "Extension", "is_correct": false, "explanation": "Reversing entries do not extend adjusting entries; they cancel their effect on certain accounts." } ] },
+        { "sequence": 10, "question_text": "The Statement of Financial Position proves which accounting equation?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Revenue − Expenses = Net Income", "is_correct": false, "explanation": "This is the equation proved by the Income Statement, not the Balance Sheet." }, { "sequence": 2, "answer_text": "Assets = Liabilities + Owner's Equity", "is_correct": true, "explanation": "The Statement of Financial Position (Balance Sheet) directly proves the accounting equation Assets = Liabilities + Owner's Equity. The left side shows Assets; the right side shows Liabilities + Owner's Equity (ending capital from the Statement of Changes in Equity)." }, { "sequence": 3, "answer_text": "Ending Capital = Beginning Capital + Net Income − Drawings", "is_correct": false, "explanation": "This formula is proved by the Statement of Changes in Equity, not the Balance Sheet." }, { "sequence": 4, "answer_text": "Total Debits = Total Credits", "is_correct": false, "explanation": "This equality is proved by the Trial Balance, not the Balance Sheet." } ] },
+        { "sequence": 11, "question_text": "Which financial statement is a reconciliation of beginning and ending capital balances?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Income Statement", "is_correct": false, "explanation": "The Income Statement shows revenues and expenses for the period; it does not reconcile capital balances." }, { "sequence": 2, "answer_text": "Statement of Financial Position", "is_correct": false, "explanation": "The Balance Sheet shows balances at a point in time; it does not show the changes in capital." }, { "sequence": 3, "answer_text": "Statement of Cash Flows", "is_correct": false, "explanation": "The Statement of Cash Flows reconciles beginning and ending cash balances, not capital." }, { "sequence": 4, "answer_text": "Statement of Changes in Equity", "is_correct": true, "explanation": "The Statement of Changes in Equity shows how Owner's Capital changed during the period: Beginning Capital + Net Income + Additional Investment − Drawings = Ending Capital." } ] },
+        { "sequence": 12, "question_text": "After all four closing steps, the Income Summary account balance should be:", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Equal to total revenues", "is_correct": false, "explanation": "After Step 1, Income Summary has a credit balance equal to total revenues, but Steps 2 and 3 then zero it out." }, { "sequence": 2, "answer_text": "Equal to total expenses", "is_correct": false, "explanation": "After Step 2, the debit side equals total expenses, but after Step 3 the account is zeroed." }, { "sequence": 3, "answer_text": "Zero", "is_correct": true, "explanation": "After all four closing steps, the Income Summary account has a ZERO balance. It is a temporary holding account used only during the closing process. Step 3 closes it to Capital." }, { "sequence": 4, "answer_text": "Equal to net income", "is_correct": false, "explanation": "After Step 2 (before Step 3), Income Summary shows the net income/loss. But after Step 3 closes it to Capital, its balance is zero." } ] },
+        { "sequence": 13, "question_text": "A business has: Beginning Capital ₱200,000; Net Income ₱45,000; Additional Investment ₱10,000; Owner's Drawings ₱15,000. What is the Ending Capital?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "₱230,000", "is_correct": false, "explanation": "₱230,000 omits the additional investment. Formula: 200k + 45k + 10k − 15k = 240k." }, { "sequence": 2, "answer_text": "₱240,000", "is_correct": true, "explanation": "Ending Capital = Beginning Capital + Net Income + Additional Investment − Drawings = ₱200,000 + ₱45,000 + ₱10,000 − ₱15,000 = ₱240,000." }, { "sequence": 3, "answer_text": "₱255,000", "is_correct": false, "explanation": "₱255,000 forgets to deduct drawings. Without deducting: 200k + 45k + 10k = 255k." }, { "sequence": 4, "answer_text": "₱260,000", "is_correct": false, "explanation": "₱260,000 does not apply the formula correctly." } ] },
+        { "sequence": 14, "question_text": "Total revenues ₱150,000; Total operating expenses ₱85,000. What is the net income for the period?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "₱235,000", "is_correct": false, "explanation": "₱235,000 is the sum of revenues and expenses, not the difference." }, { "sequence": 2, "answer_text": "₱85,000", "is_correct": false, "explanation": "₱85,000 is the total expenses, not the net income." }, { "sequence": 3, "answer_text": "₱65,000", "is_correct": true, "explanation": "Net Income = Total Revenues − Total Expenses = ₱150,000 − ₱85,000 = ₱65,000." }, { "sequence": 4, "answer_text": "₱150,000", "is_correct": false, "explanation": "₱150,000 is the total revenues before deducting expenses." } ] },
+        { "sequence": 15, "question_text": "A year-end adjusting entry was made to record accrued interest payable of ₱1,200. What is the correct REVERSING ENTRY on January 1 of the new period?", "question_type": "multiple_choice", "answers": [ { "sequence": 1, "answer_text": "Debit Accrued Interest Payable ₱1,200 / Credit Interest Expense ₱1,200", "is_correct": true, "explanation": "The original adjusting entry was: Debit Interest Expense / Credit Accrued Interest Payable. The reversing entry on January 1 swaps both sides: Debit Accrued Interest Payable / Credit Interest Expense. This cancels the liability and reverses the expense so that when cash is paid, only a simple Debit Interest Expense / Credit Cash is needed." }, { "sequence": 2, "answer_text": "Debit Interest Expense ₱1,200 / Credit Accrued Interest Payable ₱1,200", "is_correct": false, "explanation": "This is the original adjusting entry, not the reversing entry. The reversing entry is the opposite." }, { "sequence": 3, "answer_text": "Debit Cash ₱1,200 / Credit Interest Expense ₱1,200", "is_correct": false, "explanation": "This would be the entry when cash is actually paid, not the reversing entry." }, { "sequence": 4, "answer_text": "No reversing entry is needed for accrued expenses", "is_correct": false, "explanation": "Accrued expenses DO require reversing entries. They simplify bookkeeping when the cash is paid in the new period." } ] }
+      ]
+    }
+  ]
+}

@@ -7,16 +7,35 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Restore session from localStorage on mount
+  // On mount: if we have a stored token, validate it against the backend.
+  // Trusting only localStorage causes a "ghost session" — the UI appears
+  // logged in until the first protected call 401s and boots the user.
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('acculearn_user');
-      if (stored) setUser(JSON.parse(stored));
-    } catch {
-      // ignore malformed JSON
-    } finally {
+    let cancelled = false;
+    const token = localStorage.getItem('acculearn_token');
+
+    if (!token) {
       setIsLoading(false);
+      return;
     }
+
+    authService.me()
+      .then((fresh) => {
+        if (cancelled) return;
+        setUser(fresh);
+        localStorage.setItem('acculearn_user', JSON.stringify(fresh));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        localStorage.removeItem('acculearn_token');
+        localStorage.removeItem('acculearn_user');
+        setUser(null);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => { cancelled = true; };
   }, []);
 
   // Listen for 401s from the axios interceptor
@@ -34,6 +53,12 @@ export function AuthProvider({ children }) {
     return u;
   };
 
+  const register = async (payload) => {
+    const u = await authService.register(payload);
+    setUser(u);
+    return u;
+  };
+
   const logout = async () => {
     await authService.logout();
     setUser(null);
@@ -44,8 +69,8 @@ export function AuthProvider({ children }) {
     isAuthenticated: !!user,
     isLoading,
     login,
+    register,
     logout,
-    setUser, // exposed so role-switcher demo can swap users without going through API
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

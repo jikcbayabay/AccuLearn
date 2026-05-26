@@ -1,78 +1,263 @@
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import Icon from '../../components/common/Icons.jsx';
 import {
-  Badge, Button, Card, Loading, ProgressBar, cls,
+  Button, Card, Loading, Spinner, cls,
 } from '../../components/common/UI.jsx';
 import { PageHeader } from '../../components/layout/Shell.jsx';
-import { api, FORMATIVES } from '../../mockData.js';
+import apiClient from '../../services/api.js';
+import '../../styles/lesson-content.css';
+
+// ─── Inline lesson quiz ──────────────────────────────────────────────────────
+
+const LessonQuiz = ({ competencyId }) => {
+  const [state, setState]     = React.useState('idle');   // idle | loading | ready | submitting | done | error
+  const [quiz, setQuiz]       = React.useState(null);
+  const [answers, setAnswers] = React.useState({});       // { question_id: answer_id }
+  const [result, setResult]   = React.useState(null);
+
+  const load = () => {
+    setState('loading');
+    apiClient.get(`/student/competencies/${competencyId}/lesson-quiz`)
+      .then(res => {
+        if (!res.data.quiz) { setState('error'); return; }
+        setQuiz(res.data.quiz);
+        setAnswers({});
+        setResult(null);
+        setState('ready');
+      })
+      .catch(() => setState('error'));
+  };
+
+  const submit = async () => {
+    const payload = Object.entries(answers).map(([qid, aid]) => ({
+      question_id: Number(qid),
+      answer_id: Number(aid),
+    }));
+    setState('submitting');
+    try {
+      const res = await apiClient.post('/student/assessments/submit', {
+        quiz_id: quiz.id,
+        answers: payload,
+      });
+      setResult(res.data);
+      setState('done');
+    } catch {
+      setState('error');
+    }
+  };
+
+  const retry = () => {
+    setAnswers({});
+    setResult(null);
+    setState('ready');
+  };
+
+  if (state === 'idle') {
+    return (
+      <Card className="mt-5 p-5 border-brand-blue/30 bg-brand-blue-50/40">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <div className="font-semibold text-ink-900 text-[14px]">Lesson Quiz available</div>
+            <div className="text-[12.5px] text-ink-500 mt-0.5">
+              Test your understanding of this lesson.
+            </div>
+          </div>
+          <Button variant="primary" size="sm" onClick={load} icon={<Icon.Sparkle size={14}/>}>
+            Take quiz
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
+  if (state === 'loading') {
+    return (
+      <Card className="mt-5 p-6 flex items-center justify-center gap-2 text-ink-500 text-[13px]">
+        <Spinner size={15}/> Loading quiz…
+      </Card>
+    );
+  }
+
+  if (state === 'error') {
+    return (
+      <Card className="mt-5 p-5 border-mastery-needs/30 bg-rose-50">
+        <div className="text-[13px] text-mastery-needs">Could not load lesson quiz. Try again later.</div>
+      </Card>
+    );
+  }
+
+  if (state === 'done' && result) {
+    const passed = result.passed;
+    return (
+      <Card className={cls('mt-5 p-6', passed ? 'bg-brand-green-50 border-brand-green/20' : 'bg-rose-50 border-mastery-needs/20')}>
+        <div className={cls('flex items-center gap-2 font-semibold text-[15px]', passed ? 'text-brand-green-700' : 'text-mastery-needs')}>
+          {passed ? <Icon.Check size={18}/> : <Icon.AlertTri size={18}/>}
+          {passed ? 'Quiz passed!' : 'Not quite — keep studying!'}
+        </div>
+        <div className="mt-3 flex items-center gap-6">
+          <div>
+            <div className="text-[11px] uppercase tracking-wider text-ink-500 font-semibold">Score</div>
+            <div className={cls('text-3xl font-bold tnum', passed ? 'text-brand-green-700' : 'text-mastery-needs')}>
+              {result.score}%
+            </div>
+          </div>
+          <div>
+            <div className="text-[11px] uppercase tracking-wider text-ink-500 font-semibold">Correct</div>
+            <div className="text-3xl font-bold tnum text-ink-800">
+              {result.correct_count}/{result.total_questions}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 space-y-2">
+          {quiz.questions.map((q, qi) => {
+            const r = result.results.find(r => r.question_id === q.question_id);
+            return (
+              <div key={q.question_id} className={cls(
+                'rounded-xl px-4 py-3 text-[13px]',
+                r?.is_correct ? 'bg-brand-green-50 border border-brand-green/20' : 'bg-rose-50 border border-mastery-needs/20'
+              )}>
+                <div className="flex items-start gap-2">
+                  {r?.is_correct
+                    ? <Icon.Check size={13} className="text-brand-green-700 mt-0.5 shrink-0"/>
+                    : <Icon.AlertTri size={13} className="text-mastery-needs mt-0.5 shrink-0"/>}
+                  <span className={cls('font-medium', r?.is_correct ? 'text-brand-green-800' : 'text-mastery-needs')}>
+                    Q{qi + 1}. {q.question_text}
+                  </span>
+                </div>
+                {!r?.is_correct && (
+                  <div className="mt-1.5 ml-5 text-[12px] text-ink-600">
+                    Your answer: <span className="font-medium">
+                      {q.answers.find(a => a.answer_id === r?.answer_id)?.answer_text ?? '—'}
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {!passed && (
+          <Button variant="secondary" size="sm" className="mt-4" onClick={retry} icon={<Icon.Spark size={13}/>}>
+            Retake quiz
+          </Button>
+        )}
+      </Card>
+    );
+  }
+
+  // ready / submitting
+  const allAnswered = quiz.questions.length > 0 &&
+    quiz.questions.every(q => answers[q.question_id] !== undefined);
+
+  return (
+    <Card className="mt-5 p-6">
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <div className="font-semibold text-ink-900 text-[15px]">{quiz.title}</div>
+          <div className="text-[12.5px] text-ink-500 mt-0.5">
+            {quiz.questions.length} questions · passing score {quiz.passing_score}%
+          </div>
+        </div>
+        <div className="text-[13px] text-ink-500 tnum font-medium">
+          {Object.keys(answers).length}/{quiz.questions.length} answered
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        {quiz.questions.map((q, qi) => (
+          <div key={q.question_id}>
+            <div className="text-[14px] font-medium text-ink-900 mb-3">
+              {qi + 1}. {q.question_text}
+            </div>
+            <div className="space-y-2">
+              {q.answers.map(a => {
+                const selected = answers[q.question_id] === a.answer_id;
+                return (
+                  <button
+                    key={a.answer_id}
+                    onClick={() => setAnswers(prev => ({ ...prev, [q.question_id]: a.answer_id }))}
+                    className={cls(
+                      'w-full text-left px-4 py-3 rounded-xl border text-[13.5px] transition',
+                      selected
+                        ? 'border-brand-blue bg-brand-blue-50 text-brand-blue font-medium'
+                        : 'border-ink-200 hover:border-brand-blue/50 hover:bg-ink-50 text-ink-700'
+                    )}>
+                    {a.answer_text}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between mt-6 pt-5 border-t border-ink-200">
+        <Button variant="ghost" size="sm" onClick={() => setState('idle')}>Cancel</Button>
+        <Button variant="primary" disabled={!allAnswered || state === 'submitting'}
+                onClick={submit}
+                icon={state === 'submitting' ? <Spinner size={13}/> : <Icon.Check size={14}/>}>
+          {state === 'submitting' ? 'Submitting…' : 'Submit answers'}
+        </Button>
+      </div>
+    </Card>
+  );
+};
+
+// ─── Main LessonView ─────────────────────────────────────────────────────────
 
 const LessonView = ({ ctx, onBack, onOpenQuiz }) => {
-  const [lessons, setLessons] = React.useState(null);
-  const [active, setActive] = React.useState(ctx.lessonId || 'l5');
+  const [lessons, setLessons]     = React.useState(null);
+  const [active, setActive]       = React.useState(null);
   const [completed, setCompleted] = React.useState({});
-  // formative quiz state per lesson: { [lessonId]: { passed: bool, score, total, attempts } }
-  const [formativeResults, setFormativeResults] = React.useState({});
-  // current formative answer state
-  const [formAnswers, setFormAnswers] = React.useState({});
-  const [formSubmitted, setFormSubmitted] = React.useState(false);
+  const [saving, setSaving]       = React.useState(null);
 
   React.useEffect(() => {
-    api.getLessons(ctx.moduleId).then(ls => {
+    Promise.all([
+      apiClient.get(`/student/modules/${ctx.moduleId}`),
+      apiClient.get(`/student/modules/${ctx.moduleId}/completions`),
+    ]).then(([modRes, compRes]) => {
+      const mod = modRes.data.module;
+      const ls = (mod.competencies || []).map(c => ({
+        id: c.id,
+        title: c.title,
+        duration: '~15 min',
+        body: c.learning_materials?.find(m => m.type === 'text')?.body ?? null,
+      }));
       setLessons(ls);
-      const map = {}; ls.forEach(l => { if (l.completed) map[l.id] = true; });
-      setCompleted(map);
-      // seed formative passes for already-completed lessons (demo)
-      const seed = {};
-      ls.forEach(l => {
-        if (l.completed) {
-          const fq = FORMATIVES[l.id];
-          if (fq) seed[l.id] = { passed: true, score: fq.questions.length, total: fq.questions.length, attempts: 1 };
-        }
-      });
-      setFormativeResults(seed);
-    });
+      setActive(ls[0]?.id ?? null);
+
+      const init = {};
+      for (const id of (compRes.data.completed_ids ?? [])) {
+        init[id] = true;
+      }
+      setCompleted(init);
+    }).catch(() => setLessons([]));
   }, [ctx.moduleId]);
 
-  // reset formative state when lesson changes
-  React.useEffect(() => { setFormAnswers({}); setFormSubmitted(false); }, [active]);
+  const markComplete = async (lessonId) => {
+    setCompleted(c => ({ ...c, [lessonId]: true }));
+    setSaving(lessonId);
+    try {
+      await apiClient.post(`/student/competencies/${lessonId}/complete`);
+    } catch {
+      setCompleted(c => { const n = { ...c }; delete n[lessonId]; return n; });
+    } finally {
+      setSaving(null);
+    }
+  };
 
   if (!lessons) return <Loading/>;
-  const lesson = lessons.find(l => l.id === active) || lessons[0];
-  const idx = lessons.findIndex(l => l.id === lesson.id);
-  const prev = lessons[idx - 1];
-  const next = lessons[idx + 1];
+  if (!lessons.length) return <div className="p-8 text-ink-500">No lessons found for this module.</div>;
 
-  const fq = FORMATIVES[lesson.id];
-  const fResult = formativeResults[lesson.id];
-  const passedAllFormatives = lessons.every(l => {
-    const r = formativeResults[l.id];
-    return r && r.passed;
-  });
-  const passedCount = lessons.filter(l => formativeResults[l.id]?.passed).length;
-
-  const submitFormative = () => {
-    if (!fq) return;
-    setFormSubmitted(true);
-    let correct = 0;
-    fq.questions.forEach((q, i) => { if (formAnswers[i] === q.answer) correct++; });
-    const passed = correct / fq.questions.length >= fq.passing;
-    setFormativeResults(r => ({
-      ...r,
-      [lesson.id]: {
-        passed,
-        score: correct,
-        total: fq.questions.length,
-        attempts: (r[lesson.id]?.attempts || 0) + 1,
-      },
-    }));
-    if (passed) setCompleted(c => ({ ...c, [lesson.id]: true }));
-  };
-
-  const retryFormative = () => { setFormAnswers({}); setFormSubmitted(false); };
-
-  const goToModuleQuiz = () => {
-    if (passedAllFormatives) onOpenQuiz(ctx.moduleId);
-  };
+  const lesson          = lessons.find(l => l.id === active) ?? lessons[0];
+  const idx             = lessons.findIndex(l => l.id === lesson.id);
+  const prev            = lessons[idx - 1];
+  const next            = lessons[idx + 1];
+  const completedCount  = lessons.filter(l => completed[l.id]).length;
+  const allComplete     = completedCount === lessons.length && lessons.length > 0;
 
   return (
     <div>
@@ -80,7 +265,6 @@ const LessonView = ({ ctx, onBack, onOpenQuiz }) => {
         title={lesson.title}
         breadcrumbs={[
           { label: 'Modules', onClick: onBack },
-          { label: 'Fundamentals of Accountancy I', onClick: onBack },
           { label: `Lesson ${idx + 1}` },
         ]}
         action={<Button variant="secondary" size="sm" onClick={onBack} icon={<Icon.ChevL size={14}/>}>Back to modules</Button>}
@@ -88,7 +272,7 @@ const LessonView = ({ ctx, onBack, onOpenQuiz }) => {
 
       <div className="grid lg:grid-cols-[1fr_280px] gap-6">
         <div>
-          {/* Video / content placeholder */}
+          {/* Video placeholder */}
           <Card className="overflow-hidden">
             <div className="aspect-video ph-stripes relative flex items-center justify-center">
               <button className="w-16 h-16 rounded-full bg-white/95 shadow-pop flex items-center justify-center text-brand-blue hover:scale-105 transition">
@@ -100,116 +284,62 @@ const LessonView = ({ ctx, onBack, onOpenQuiz }) => {
             </div>
           </Card>
 
+          {/* Reading content */}
           <Card className="mt-5 p-6">
-            <div className="text-[12px] uppercase tracking-wider text-ink-500 font-semibold mb-2">Reading</div>
-            <h3 className="text-[18px] font-semibold text-ink-900 mb-3">{lesson.title}</h3>
-            <pre className="whitespace-pre-wrap font-sans text-[14.5px] leading-[1.7] text-ink-700">
-{lesson.body || `This is a placeholder lesson body. In a real lesson, you'd find a short video, a written explanation, an interactive example, and a few practice questions to check your understanding before continuing.
-
-Pass the formative check below to mark this lesson complete and unlock the next one.`}
-            </pre>
+            <div className="text-[12px] uppercase tracking-wider text-ink-500 font-semibold mb-4">Reading</div>
+            {lesson.body ? (
+              <div className="lesson-body">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {lesson.body}
+                </ReactMarkdown>
+              </div>
+            ) : (
+              <p className="text-ink-500 italic text-[14px]">No lesson content available.</p>
+            )}
           </Card>
 
-          {/* Formative quiz */}
-          {fq && (
-            <Card className="mt-5 p-6 border-brand-blue/20">
-              <div className="flex items-start justify-between gap-3 mb-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Badge tone="blue">Formative check</Badge>
-                    {fResult?.passed && <Badge tone="completed"><Icon.Check size={11}/>Passed</Badge>}
-                    {fResult && !fResult.passed && <Badge tone="needs">Not yet passed</Badge>}
-                  </div>
-                  <h3 className="text-[16px] font-semibold text-ink-900">{fq.title}</h3>
-                  <p className="text-[13px] text-ink-500 mt-0.5">
-                    Quick {fq.questions.length}-question check. Pass at {Math.round(fq.passing * 100)}% to complete the lesson and unlock the module quiz.
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                {fq.questions.map((q, i) => (
-                  <div key={q.id}>
-                    <div className="text-[14px] font-medium text-ink-900 mb-2 flex items-start gap-2">
-                      <span className="w-6 h-6 rounded-md bg-brand-blue-50 text-brand-blue text-[12px] font-bold flex items-center justify-center shrink-0">{i+1}</span>
-                      <span>{q.prompt}</span>
-                    </div>
-                    <div className="grid gap-1.5 ml-8">
-                      {q.options.map((opt, j) => {
-                        const selected = formAnswers[i] === j;
-                        const correct = formSubmitted && j === q.answer;
-                        const wrong = formSubmitted && selected && j !== q.answer;
-                        return (
-                          <label key={j}
-                            className={cls('flex items-start gap-2.5 p-2.5 rounded-lg border cursor-pointer transition text-[13.5px]',
-                              correct ? 'border-brand-green bg-brand-green-50 text-brand-green-700' :
-                              wrong ? 'border-mastery-needs bg-rose-50 text-mastery-needs' :
-                              selected ? 'border-brand-blue bg-brand-blue-50' :
-                              'border-ink-200 hover:border-ink-300 bg-white')}>
-                            <span className={cls('mt-0.5 w-4 h-4 rounded-full border flex items-center justify-center shrink-0',
-                              selected ? 'border-brand-blue bg-brand-blue' : 'border-ink-300 bg-white')}>
-                              {selected && <span className="w-1.5 h-1.5 rounded-full bg-white"/>}
-                            </span>
-                            <input type="radio" className="hidden" name={`f-${q.id}`}
-                                   disabled={formSubmitted}
-                                   checked={selected}
-                                   onChange={() => setFormAnswers(a => ({ ...a, [i]: j }))}/>
-                            <span>{opt}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3 mt-5 pt-4 border-t border-ink-200">
-                {!formSubmitted ? (
-                  <Button variant="primary" size="sm"
-                          disabled={Object.keys(formAnswers).length !== fq.questions.length}
-                          onClick={submitFormative}>
-                    Submit check
-                  </Button>
-                ) : (
-                  <>
-                    <div className={cls('text-[14px] font-semibold flex items-center gap-2',
-                      fResult?.passed ? 'text-brand-green-700' : 'text-mastery-needs')}>
-                      {fResult?.passed ? <Icon.Check size={16}/> : <Icon.AlertTri size={16}/>}
-                      {fResult?.passed
-                        ? `Passed — ${fResult.score}/${fResult.total}. Lesson marked complete.`
-                        : `Not yet — ${fResult.score}/${fResult.total}. Review the lesson and try again.`}
-                    </div>
-                    <div className="ml-auto flex gap-2">
-                      <Button variant="secondary" size="sm" onClick={retryFormative}>Try again</Button>
-                      {fResult?.passed && next && (
-                        <Button variant="primary" size="sm" onClick={() => setActive(next.id)}>
-                          Next lesson <Icon.Chevron size={14}/>
-                        </Button>
-                      )}
-                    </div>
-                  </>
-                )}
+          {/* Complete / completed banner + lesson quiz */}
+          {!completed[lesson.id] ? (
+            <Card className="mt-5 p-5 border-brand-blue/20">
+              <div className="flex items-center justify-between gap-4">
+                <p className="text-[13.5px] text-ink-600">
+                  Read through the lesson above, then mark it complete to track your progress.
+                </p>
+                <Button variant="primary" size="sm"
+                        disabled={saving === lesson.id}
+                        onClick={() => markComplete(lesson.id)}>
+                  {saving === lesson.id
+                    ? <><Spinner size={13}/>Saving…</>
+                    : <><Icon.Check size={14}/>Mark complete</>}
+                </Button>
               </div>
             </Card>
+          ) : (
+            <>
+              <Card className="mt-5 p-4 bg-brand-green-50 border-brand-green/20">
+                <div className="flex items-center gap-2 text-brand-green-700 font-semibold text-[13.5px]">
+                  <Icon.Check size={15}/> Lesson complete — progress saved
+                </div>
+              </Card>
+              <LessonQuiz key={lesson.id} competencyId={lesson.id}/>
+            </>
           )}
 
-          {/* Lesson controls */}
+          {/* Lesson nav */}
           <div className="flex flex-wrap items-center justify-between gap-3 mt-5">
             <Button variant="secondary" size="md" disabled={!prev}
                     icon={<Icon.ChevL size={14}/>}
                     onClick={() => prev && setActive(prev.id)}>
               {prev ? prev.title : 'Previous'}
             </Button>
-            <div className="flex gap-2">
-              <Button variant="primary" disabled={!next}
-                      onClick={() => next && setActive(next.id)}>
-                {next ? 'Next lesson' : 'Last lesson'} <Icon.Chevron size={14}/>
-              </Button>
-            </div>
+            <Button variant="primary" disabled={!next}
+                    onClick={() => next && setActive(next.id)}>
+              {next ? 'Next lesson' : 'Last lesson'} <Icon.Chevron size={14}/>
+            </Button>
           </div>
         </div>
 
-        {/* Lesson list sidebar */}
+        {/* Sidebar */}
         <Card className="p-3 self-start sticky top-4">
           <div className="px-2 py-2 text-[12px] uppercase tracking-wider text-ink-500 font-semibold">
             Module lessons
@@ -217,8 +347,7 @@ Pass the formative check below to mark this lesson complete and unlock the next 
           <div className="space-y-1">
             {lessons.map((l, i) => {
               const isActive = l.id === lesson.id;
-              const r = formativeResults[l.id];
-              const done = !!r?.passed || completed[l.id];
+              const done     = !!completed[l.id];
               return (
                 <button key={l.id} onClick={() => setActive(l.id)}
                   className={cls('w-full text-left px-2.5 py-2 rounded-lg flex items-start gap-2.5 transition',
@@ -229,38 +358,27 @@ Pass the formative check below to mark this lesson complete and unlock the next 
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-[13.5px] font-medium leading-tight">{l.title}</div>
-                    <div className="text-[11.5px] text-ink-500 mt-0.5 flex items-center gap-1.5">
-                      <span>{l.duration}</span>
-                      {r && (
-                        <>
-                          <span>·</span>
-                          <span className={cls(r.passed ? 'text-brand-green-700' : 'text-mastery-needs', 'font-semibold')}>
-                            {r.passed ? 'Check passed' : 'Retake check'}
-                          </span>
-                        </>
-                      )}
-                    </div>
+                    <div className="text-[11.5px] text-ink-500 mt-0.5">{l.duration}</div>
                   </div>
                 </button>
               );
             })}
           </div>
+
+          {/* Module quiz section */}
           <div className="border-t border-ink-200 mt-2 pt-3 px-2">
             <div className="text-[11.5px] uppercase tracking-wider text-ink-500 font-semibold mb-2">Module quiz</div>
-            <div className="flex items-center justify-between text-[12px] mb-1.5">
-              <span className="text-ink-500">Checks passed</span>
-              <span className="font-semibold tnum">{passedCount}/{lessons.length}</span>
+            <div className="text-[12px] text-ink-500 mb-3">
+              Lessons complete: <span className="font-semibold text-ink-700">{completedCount}/{lessons.length}</span>
             </div>
-            <ProgressBar value={(passedCount / lessons.length) * 100} color={passedAllFormatives ? 'green' : 'blue'}/>
-            {passedAllFormatives ? (
-              <button onClick={goToModuleQuiz}
-                className="w-full mt-3 px-3 py-2.5 rounded-xl bg-brand-green text-white text-[13px] font-semibold hover:bg-brand-green-700 transition flex items-center justify-center gap-2">
+            {allComplete ? (
+              <button onClick={() => onOpenQuiz(ctx.moduleId)}
+                className="w-full px-3 py-2.5 rounded-xl bg-brand-green text-white text-[13px] font-semibold hover:bg-brand-green-700 transition flex items-center justify-center gap-2">
                 <Icon.Check size={14}/> Take module quiz
               </button>
             ) : (
-              <div className="mt-3 px-3 py-2.5 rounded-xl bg-ink-100 text-ink-500 text-[12.5px] font-medium flex items-center justify-center gap-2 cursor-not-allowed"
-                   title="Pass every lesson check to unlock">
-                <Icon.Lock size={13}/> Locked — pass all checks
+              <div className="px-3 py-2.5 rounded-xl bg-ink-100 text-ink-400 text-[12.5px] font-medium flex items-center justify-center gap-2 cursor-not-allowed select-none">
+                <Icon.Lock size={13}/> Complete all lessons to unlock
               </div>
             )}
           </div>

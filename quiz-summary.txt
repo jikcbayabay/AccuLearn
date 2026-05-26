@@ -1,0 +1,138 @@
+AccuLearn FABM 1 — Quiz Data Summary
+=====================================
+Generated : 2026-05-24
+Subject   : Fundamentals of Accountancy, Business and Management 1 (FABM 1)
+Level     : Grade 11 ABM — DepEd Senior High School
+
+STATUS: ✓ Ready to load
+  quiz-data.json   — 105 questions, 373 answers (source data)
+  load-quizzes.sql — CREATE TABLES + 7 assessments + 105 questions + 373 answers
+  quiz-api.js      — Express REST endpoints for serving quiz data
+
+─────────────────────────────────────────────────────────────
+TOTALS
+─────────────────────────────────────────────────────────────
+  Quizzes (one per CO / module)  :  7
+  Questions                      : 105  (15 per quiz)
+  Answers                        : 373
+  Passing score (all quizzes)    : 75%
+
+─────────────────────────────────────────────────────────────
+PER-CO BREAKDOWN
+─────────────────────────────────────────────────────────────
+
+CO1 — Accounting Concepts and Principles
+  Competency code : ACC_001 / ABM_FABM11-IIIa-1 (Module 1, CO 1)
+  Source file     : Easy Summative MCQ — CO1 Short Assessment and Quiz
+  Questions       : 15  (multiple_choice)
+  Answers         : 44  (Q14 has 2 options; all others 3 options)
+  Topics covered  : Language of business, father of modern accounting, PRC-BOA,
+                    accounting concepts (Economic Entity, Going Concern, Monetary Unit,
+                    Time Period, Cost Principle, Objectivity), internal/external users,
+                    GAAP, bookkeeping vs. accounting, branches of accounting
+
+CO2 — The Accounting Equation
+  Competency code : ACC_002 (Module 2, CO 1)
+  Source file     : Easy Summative MCQ — CO2 Short Assessment and Quiz
+  Questions       : 15  (multiple_choice)
+  Answers         : 44  (Q11 has 2 options; all others 3 options)
+  Topics covered  : A = L + OE formula, assets/liabilities/equity definitions,
+                    residual interest, equation arithmetic (₱ computations),
+                    asset swaps, drawings effect, economic obligations
+
+CO3 — Types of Major Accounts
+  Competency code : ACC_003 (Module 3, CO 1)
+  Source file     : CO3 Short Assessment and Quiz (Drive file was empty — 15 questions
+                    generated from accounting knowledge of the five major accounts)
+  Questions       : 15  (multiple_choice)
+  Answers         : 60  (all questions have 4 options)
+  Topics covered  : Five major account classifications, asset/liability/equity/revenue/
+                    expense examples, chart of accounts numbering (100-199 etc.),
+                    permanent vs. temporary accounts, contra-accounts (Accumulated
+                    Depreciation, Drawings), current vs. non-current assets
+
+CO4 — Books of Accounts
+  Competency code : ACC_004 (Module 4, CO 1)
+  Source file     : Easy Formative MCQ — CO4 Short Assessment, subtopics 1-3
+                    (Journal, Ledger, Special Journals)
+  Questions       : 15  (multiple_choice)
+  Answers         : 45  (all questions have 3 options)
+  Topics covered  : Book of Original Entry (Journal), Book of Final Entry (Ledger),
+                    journal entry format (debit flush left, credit indented, narration),
+                    simple vs. compound entries, PR column, special journals
+                    (SJ, CRJ, CDJ, PJ, GJ), source documents (OR, invoice, check)
+
+CO5 — Business Transactions and Their Analysis
+  Competency code : ACC_005 (Module 5, CO 1)
+  Source file     : Summative Quiz — Steps 1-3 (Analyze, Journalize, Post)
+  Questions       : 15  (multiple_choice)
+  Answers         : 60  (all questions have 4 options)
+  Topics covered  : Accounting cycle Steps 1-3 sequence, source document validity,
+                    normal debit/credit balances, Unearned Revenue, posting equality,
+                    PR cross-reference, transaction analysis (₱ computations),
+                    journal entries for investment/rent/supplies/payable
+
+CO6 — Preparation of Trial Balance
+  Competency code : ACC_006 (Module 6, CO 1)
+  Source file     : Summative Quiz — Steps 4-5 (Trial Balance, Adjusting Entries)
+  Questions       : 15  (multiple_choice)
+  Answers         : 60  (all questions have 4 options)
+  Topics covered  : Accounting cycle Steps 4-5, trial balance limitations,
+                    Accumulated Depreciation placement, ADE/LCR normal balance mnemonic,
+                    four types of adjusting entries (prepaid expense, accrued expense,
+                    accrued revenue, unearned revenue, depreciation), adjusting entry
+                    calculations (₱ computations), adjusted trial balance
+
+CO7 — Completion of the Accounting Cycle
+  Competency code : ACC_007 (Module 7, CO 1)
+  Source file     : Summative Quiz — Steps 6-10 (Adjusted TB, Financial Statements,
+                    Closing, Post-closing TB, Reversing Entries)
+  Questions       : 15  (multiple_choice)
+  Answers         : 60  (all questions have 4 options)
+  Topics covered  : Accounting cycle Steps 6-10 sequence, adjusted trial balance as
+                    basis for financial statements, temporary vs. permanent accounts,
+                    four-step closing process (Income Summary), post-closing trial
+                    balance, reversing entries (which adjustments require them),
+                    Statement of Changes in Equity formula, net income computation,
+                    ending capital computation (₱ computations)
+
+─────────────────────────────────────────────────────────────
+GOOGLE DRIVE SOURCES
+─────────────────────────────────────────────────────────────
+  CO1 + CO2 : Folder 1-8P04BYcPp1Ro_DxOhP7DBu8Y_KZE_WQ (related folder)
+  CO3       : File 1wn6DyX8hOTZrIDFaCnYUKp9JorlMA6EmllqDc53ToZs (title only; generated)
+  CO4       : Folder 1-8P04BYcPp1Ro_DxOhP7DBu8Y_KZE_WQ (related folder)
+  CO5-CO7   : Folder 1dGuOt1q8ydcQHvO0-J1tONurThG1toZd (specified folder)
+
+─────────────────────────────────────────────────────────────
+DATABASE SCHEMA (new tables)
+─────────────────────────────────────────────────────────────
+  assessment_questions
+    id             BIGINT UNSIGNED PK AUTO_INCREMENT
+    assessment_id  BIGINT UNSIGNED FK → assessments(id) CASCADE DELETE
+    question_text  TEXT NOT NULL
+    question_type  VARCHAR(50) DEFAULT 'multiple_choice'
+    sequence_order TINYINT UNSIGNED DEFAULT 1
+    is_active      TINYINT(1) DEFAULT 1
+    timestamps
+
+  assessment_answers
+    id             BIGINT UNSIGNED PK AUTO_INCREMENT
+    question_id    BIGINT UNSIGNED FK → assessment_questions(id) CASCADE DELETE
+    answer_text    TEXT NOT NULL
+    is_correct     TINYINT(1) DEFAULT 0
+    sequence_order TINYINT UNSIGNED DEFAULT 1
+    explanation    TEXT NULL
+    timestamps
+
+─────────────────────────────────────────────────────────────
+HOW TO LOAD
+─────────────────────────────────────────────────────────────
+  # From terminal:
+  mysql -u root acculearn < load-quizzes.sql
+
+  # Or from Laravel project root:
+  php artisan db:seed --class=QuizSeeder   (if QuizSeeder wraps the SQL)
+
+  # Re-run safely: uncomment the CLEANUP section at the top of load-quizzes.sql
+  # then run again — tables are truncated and AUTO_INCREMENT is reset.

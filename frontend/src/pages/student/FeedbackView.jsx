@@ -4,7 +4,7 @@ import {
   Badge, Button, Card, EmptyState, Loading,
 } from '../../components/common/UI.jsx';
 import { PageHeader } from '../../components/layout/Shell.jsx';
-import { api } from '../../mockData.js';
+import apiClient from '../../services/api.js';
 
 export const FeedbackCard = ({ f, role = 'student', onApprove, onEdit }) => (
   <Card className="p-6">
@@ -32,51 +32,65 @@ export const FeedbackCard = ({ f, role = 'student', onApprove, onEdit }) => (
             <div className="text-[11px] uppercase tracking-wider text-ink-500 font-semibold flex items-center gap-1">
               Guessing Index <span className="text-ink-300">·</span> <span className="text-ink-700 font-mono">GI</span>
             </div>
-            <div className="text-[18px] font-semibold tnum">{f.gi.toFixed(2)}</div>
-            <div className="text-[11px] text-ink-500 mt-0.5">{f.gi < 0.2 ? 'Low — confident answers' : f.gi < 0.35 ? 'Moderate' : 'High — many guesses'}</div>
+            <div className="text-[18px] font-semibold tnum">{(+f.gi).toFixed(2)}</div>
+            <div className="text-[11px] text-ink-500 mt-0.5">
+              {f.gi < 0.2 ? 'Low — confident answers' : f.gi < 0.35 ? 'Moderate' : 'High — many guesses'}
+            </div>
           </div>
           <div className="rounded-xl bg-ink-50 p-3">
             <div className="text-[11px] uppercase tracking-wider text-ink-500 font-semibold flex items-center gap-1">
               Confidence Misc. <span className="text-ink-300">·</span> <span className="text-ink-700 font-mono">CMI</span>
             </div>
-            <div className="text-[18px] font-semibold tnum">{f.cmi.toFixed(2)}</div>
-            <div className="text-[11px] text-ink-500 mt-0.5">{f.cmi < 0.25 ? 'Well-calibrated' : f.cmi < 0.45 ? 'Slightly overconfident' : 'Overconfident'}</div>
+            <div className="text-[18px] font-semibold tnum">{(+f.cmi).toFixed(2)}</div>
+            <div className="text-[11px] text-ink-500 mt-0.5">
+              {f.cmi < 0.25 ? 'Well-calibrated' : f.cmi < 0.45 ? 'Slightly overconfident' : 'Overconfident'}
+            </div>
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-4 mt-5">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-mastery-needs"/>
-              <div className="text-[12.5px] font-semibold uppercase tracking-wider text-ink-700">Mistakes</div>
-            </div>
-            <ul className="space-y-1.5">
-              {f.mistakes.map((m, i) => (
-                <li key={i} className="text-[13.5px] text-ink-700 leading-relaxed flex gap-2">
-                  <span className="text-mastery-needs mt-1">•</span>{m}
-                </li>
-              ))}
-            </ul>
+        {((f.mistakes?.length ?? 0) > 0 || (f.suggestions?.length ?? 0) > 0) && (
+          <div className="grid md:grid-cols-2 gap-4 mt-5">
+            {f.mistakes?.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-mastery-needs"/>
+                  <div className="text-[12.5px] font-semibold uppercase tracking-wider text-ink-700">Mistakes</div>
+                </div>
+                <ul className="space-y-1.5">
+                  {f.mistakes.map((m, i) => (
+                    <li key={i} className="text-[13.5px] text-ink-700 leading-relaxed flex gap-2">
+                      <span className="text-mastery-needs mt-1">•</span>{m}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {f.suggestions?.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-green"/>
+                  <div className="text-[12.5px] font-semibold uppercase tracking-wider text-ink-700">Suggestions</div>
+                </div>
+                <ul className="space-y-1.5">
+                  {f.suggestions.map((m, i) => (
+                    <li key={i} className="text-[13.5px] text-ink-700 leading-relaxed flex gap-2">
+                      <span className="text-brand-green mt-1">•</span>{m}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-brand-green"/>
-              <div className="text-[12.5px] font-semibold uppercase tracking-wider text-ink-700">Suggestions</div>
-            </div>
-            <ul className="space-y-1.5">
-              {f.suggestions.map((m, i) => (
-                <li key={i} className="text-[13.5px] text-ink-700 leading-relaxed flex gap-2">
-                  <span className="text-brand-green mt-1">•</span>{m}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
+        )}
 
         {role === 'teacher' && f.status === 'pending' && (
           <div className="flex gap-2 mt-5">
-            <Button variant="success" size="sm" icon={<Icon.Check size={14}/>} onClick={() => onApprove(f.id)}>Approve</Button>
-            <Button variant="secondary" size="sm" icon={<Icon.Edit size={14}/>} onClick={() => onEdit(f)}>Edit</Button>
+            <Button variant="success" size="sm" icon={<Icon.Check size={14}/>} onClick={() => onApprove(f.id)}>
+              Approve
+            </Button>
+            <Button variant="secondary" size="sm" icon={<Icon.Edit size={14}/>} onClick={() => onEdit(f)}>
+              Edit
+            </Button>
           </div>
         )}
         <div className="text-[11.5px] text-ink-500 mt-4">Generated {f.generatedAt}</div>
@@ -85,26 +99,29 @@ export const FeedbackCard = ({ f, role = 'student', onApprove, onEdit }) => (
   </Card>
 );
 
-const FeedbackView = ({ user }) => {
+const FeedbackView = () => {
   const [items, setItems] = React.useState(null);
+
   React.useEffect(() => {
-    api.getFeedback().then(f => setItems(f.filter(x => x.studentId === user.id)));
-  }, [user.id]);
+    apiClient.get('/student/feedback')
+      .then(res => setItems(res.data.feedback ?? []))
+      .catch(() => setItems([]));
+  }, []);
 
   if (!items) return <Loading/>;
-  if (items.length === 0) return (
-    <div>
-      <PageHeader title="Feedback" subtitle="AI-generated feedback on your work."/>
-      <Card><EmptyState title="No feedback yet" sub="Take a quiz to receive AI-generated feedback."/></Card>
-    </div>
-  );
 
   return (
     <div>
-      <PageHeader title="Feedback" subtitle="AI-generated feedback on your work."/>
-      <div className="space-y-5">
-        {items.map(f => <FeedbackCard key={f.id} f={f}/>)}
-      </div>
+      <PageHeader title="Feedback" subtitle="AI-generated feedback on your quiz attempts."/>
+      {items.length === 0 ? (
+        <Card>
+          <EmptyState title="No feedback yet" sub="Take a quiz to receive AI-generated feedback on your performance."/>
+        </Card>
+      ) : (
+        <div className="space-y-5">
+          {items.map(f => <FeedbackCard key={f.id} f={f}/>)}
+        </div>
+      )}
     </div>
   );
 };

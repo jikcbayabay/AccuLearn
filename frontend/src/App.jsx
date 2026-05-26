@@ -23,21 +23,15 @@ import SystemLogs from './pages/admin/SystemLogs.jsx';
 
 import SettingsPage from './pages/settings/Settings.jsx';
 
-import { USERS } from './mockData.js';
 import { useAuth } from './context/AuthContext.jsx';
 
 const App = () => {
-  const { user, logout, isLoading, setUser } = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const [page, setPage] = React.useState('dashboard');
-  const [lessonCtx, setLessonCtx] = React.useState({ moduleId: 'm3', lessonId: 'l5' });
-  const [quizCtx, setQuizCtx] = React.useState({ moduleId: 'm3' });
+  const [lessonCtx, setLessonCtx] = React.useState({ moduleId: null });
+  const [quizCtx, setQuizCtx]   = React.useState({ moduleId: null });
 
-  // role-default landing pages
-  const defaultPage = (role) => 'dashboard';
-
-  // Login.jsx calls useAuth().login() to populate user state, then this callback
-  // handles post-login navigation only.
-  const onLogin = (u) => { setPage(defaultPage(u.role)); };
+  const onLogin = () => { setPage('dashboard'); };
 
   const onLogout = async () => {
     try {
@@ -45,15 +39,6 @@ const App = () => {
     } finally {
       setPage('dashboard');
     }
-  };
-
-  // Demo-only role switcher: bypasses real auth and swaps to a mock user from
-  // mockData. Useful for thesis presentations where switching roles mid-demo is
-  // faster than re-logging in. Does not call the API.
-  const onChangeRole = (role) => {
-    const u = USERS.find(x => x.role === role);
-    setUser(u);
-    setPage(defaultPage(role));
   };
 
   if (isLoading) {
@@ -72,9 +57,9 @@ const App = () => {
     body = <SettingsPage user={user}/>;
   } else if (user.role === 'student') {
     if (page === 'dashboard') body = <StudentDashboard user={user} onNavigate={setPage}
-                                                       setLessonCtx={setLessonCtx} setQuizCtx={setQuizCtx}/>;
+                                                       setLessonCtx={setLessonCtx}/>;
     else if (page === 'modules')  body = <ModulesPage
-                                          onOpenLesson={(id) => { setLessonCtx({ moduleId: id, lessonId: 'l5' }); setPage('lesson'); }}
+                                          onOpenLesson={(id) => { setLessonCtx({ moduleId: id }); setPage('lesson'); }}
                                           onOpenQuiz={(id)   => { setQuizCtx({ moduleId: id }); setPage('quiz'); }}/>;
     else if (page === 'lesson')   body = <LessonView ctx={lessonCtx}
                                           onBack={() => setPage('modules')}
@@ -82,7 +67,7 @@ const App = () => {
     else if (page === 'quiz')     body = <QuizView ctx={quizCtx}
                                           onBack={() => setPage('modules')}
                                           onSeeFeedback={() => setPage('feedback')}/>;
-    else if (page === 'feedback') body = <FeedbackView user={user}/>;
+    else if (page === 'feedback') body = <FeedbackView/>;
     else if (page === 'progress') body = <ProgressPage/>;
   } else if (user.role === 'teacher') {
     if (page === 'dashboard') body = <TeacherDashboard onNavigate={setPage}/>;
@@ -99,7 +84,6 @@ const App = () => {
   return (
     <Shell user={user} current={page}
            onNavigate={setPage}
-           onChangeRole={onChangeRole}
            onLogout={onLogout}>
       {body || <EmptyState title="Page not found"/>}
     </Shell>
