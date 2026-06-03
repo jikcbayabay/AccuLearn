@@ -15,8 +15,8 @@ use App\Http\Controllers\Teacher\FeedbackReviewController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\SystemLogController;
 
-// Public auth routes
-Route::prefix('auth')->group(function () {
+// Public auth routes — rate limited to blunt brute-force / registration spam.
+Route::prefix('auth')->middleware('throttle:10,1')->group(function () {
     Route::post('login',    [AuthController::class, 'login']);
     Route::post('register', [AuthController::class, 'register']);
 });

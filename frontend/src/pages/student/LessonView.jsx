@@ -7,7 +7,48 @@ import {
 } from '../../components/common/UI.jsx';
 import { PageHeader } from '../../components/layout/Shell.jsx';
 import apiClient from '../../services/api.js';
+import { resolveVideo } from '../../utils/video.js';
 import '../../styles/lesson-content.css';
+
+// ─── Lesson video player ─────────────────────────────────────────────────────
+// Renders a real player for a `video`-type learning material. Supports direct
+// files (mp4/webm/ogg), YouTube, and Vimeo. Renders nothing when there is no
+// video material — so text-only lessons show reading content with no placeholder.
+
+const LessonVideoPlayer = ({ material }) => {
+  const resolved = resolveVideo(material?.content_url);
+  if (!resolved) return null;
+
+  return (
+    <Card className="overflow-hidden">
+      <div className="aspect-video bg-black relative">
+        {resolved.kind === 'embed' ? (
+          <iframe
+            src={resolved.src}
+            title={material.title || 'Lesson video'}
+            className="absolute inset-0 w-full h-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        ) : (
+          <video
+            src={resolved.src}
+            controls
+            preload="metadata"
+            className="absolute inset-0 w-full h-full"
+          >
+            Your browser does not support the video tag.
+          </video>
+        )}
+      </div>
+      {material.title && (
+        <div className="px-4 py-2.5 text-[12.5px] text-ink-600 border-t border-ink-100 flex items-center gap-2">
+          <Icon.Play size={13} className="text-brand-blue"/> {material.title}
+        </div>
+      )}
+    </Card>
+  );
+};
 
 // ─── Inline lesson quiz ──────────────────────────────────────────────────────
 
@@ -225,6 +266,7 @@ const LessonView = ({ ctx, onBack, onOpenQuiz }) => {
         title: c.title,
         duration: '~15 min',
         body: c.learning_materials?.find(m => m.type === 'text')?.body ?? null,
+        video: c.learning_materials?.find(m => m.type === 'video') ?? null,
       }));
       setLessons(ls);
       setActive(ls[0]?.id ?? null);
@@ -272,20 +314,11 @@ const LessonView = ({ ctx, onBack, onOpenQuiz }) => {
 
       <div className="grid lg:grid-cols-[1fr_280px] gap-6">
         <div>
-          {/* Video placeholder */}
-          <Card className="overflow-hidden">
-            <div className="aspect-video ph-stripes relative flex items-center justify-center">
-              <button className="w-16 h-16 rounded-full bg-white/95 shadow-pop flex items-center justify-center text-brand-blue hover:scale-105 transition">
-                <Icon.Play size={26}/>
-              </button>
-              <div className="absolute bottom-3 left-4 text-[12px] text-ink-700 font-mono bg-white/85 px-2 py-1 rounded-md">
-                video · {lesson.duration} · placeholder
-              </div>
-            </div>
-          </Card>
+          {/* Lesson video — renders only when a video material exists */}
+          <LessonVideoPlayer material={lesson.video}/>
 
           {/* Reading content */}
-          <Card className="mt-5 p-6">
+          <Card className={cls('p-6', lesson.video ? 'mt-5' : '')}>
             <div className="text-[12px] uppercase tracking-wider text-ink-500 font-semibold mb-4">Reading</div>
             {lesson.body ? (
               <div className="lesson-body">

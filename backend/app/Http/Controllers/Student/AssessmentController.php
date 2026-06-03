@@ -9,6 +9,8 @@ use App\Models\AiFeedbackLog;
 use App\Models\Assessment;
 use App\Models\AssessmentAnswer;
 use App\Models\MasteryRecord;
+use App\Services\AI\OpenAIService;
+use App\Services\Mastery\LearningPathResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -144,23 +146,20 @@ class AssessmentController extends Controller
                 ],
             };
 
-            $summary = match (true) {
-                $pct >= 85 => "Excellent work! You answered {$correctCount} out of {$total} questions correctly ({$pct}%). You have demonstrated strong mastery of this topic.",
-                $pct >= 75 => "Good effort! You answered {$correctCount} out of {$total} questions correctly ({$pct}%). You are on track but there are a few areas to review.",
-                $pct >= 50 => "Fair attempt. You answered {$correctCount} out of {$total} questions correctly ({$pct}%). Review the lesson material and focus on the areas highlighted below.",
-                default    => "You answered {$correctCount} out of {$total} questions correctly ({$pct}%). The lesson content needs to be revisited before your next attempt.",
-            };
-
             // Simulated GI (Guessing Index) and CMI (Confidence Miscalibration Index)
             $gi  = round(max(0, min(1, ($wrongCount / max($total, 1)) * (0.3 + (rand(0, 20) / 100)))), 4);
             $cmi = round(max(0, min(1, abs(($pct / 100) - ($correctCount / max($total, 1))) * (1 + (rand(0, 30) / 100)))), 4);
 
-            $lpRaw = match (true) {
-                $pct >= 85 => 1,
-                $pct >= 75 => 2,
-                $pct >= 50 => 3,
-                default    => 4,
-            };
+            // Narrative feedback: real GPT-4o-mini when a key is configured,
+            // otherwise a grounded deterministic fallback (handled in the service).
+            $competencyTitle = $assessment->competency?->title ?? $assessment->title;
+            $errPat          = $wrongCount > 0 ? 'missed_items' : null;
+            $ai              = app(OpenAIService::class)->generateFeedback($competencyTitle, (float) $score, $errPat);
+            $summary         = $ai['feedback_text'];
+
+            // Learning-path assignment via the canonical resolver (LP1-LP4).
+            // Per-quiz attempt assumes the prerequisite is met.
+            $lpRaw = app(LearningPathResolver::class)->resolve((float) $score, true, (float) $gi, (float) $cmi);
 
             AiFeedbackLog::create([
                 'user_id'        => $userId,
@@ -178,8 +177,15 @@ class AssessmentController extends Controller
                 'mistakes'       => $mistakes,
                 'suggestions'    => $suggestions,
             ]);
+
+            // Update the learner model: detect knowledge gaps for this
+            // competency, then refresh the derived learner profile.
+            app(\App\Services\Analytics\KnowledgeGapDetector::class)
+                ->detect($userId, $assessment->competency_id);
+            app(\App\Services\Analytics\LearnerProfileService::class)
+                ->recompute($userId);
         } catch (\Throwable) {
-            // Swallow — feedback generation must never break submission
+            // Swallow — feedback/analytics must never break submission
         }
     }
 }
