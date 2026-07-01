@@ -15,6 +15,7 @@ return new class extends Migration {
             $table->string('password');
             $table->enum('role', ['student', 'teacher', 'admin'])->default('student');
             $table->unsignedBigInteger('moodle_user_id')->nullable();
+            $table->string('moodle_token')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

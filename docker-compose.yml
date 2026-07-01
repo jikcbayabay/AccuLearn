@@ -1,0 +1,35 @@
+services:
+  db:
+    image: mariadb:11
+    container_name: acculearn-db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: acculearn
+      MYSQL_USER: acculearn
+      MYSQL_PASSWORD: acculearn
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: acculearn-app
+    depends_on:
+      - db
+    ports:
+      - "8080:80"
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: acculearn
+      DB_USERNAME: acculearn
+      DB_PASSWORD: acculearn
+    volumes:
+      - ./backend:/var/www/html
+    command: apache2-foreground
+
+volumes:
+  db_data:

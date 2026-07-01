@@ -31,6 +31,18 @@ const App = () => {
   const [lessonCtx, setLessonCtx] = React.useState({ moduleId: null });
   const [quizCtx, setQuizCtx]   = React.useState({ moduleId: null });
 
+  const [courses, setCourses] = React.useState([]);
+
+  React.useEffect(() => {
+    fetch('http://localhost:8080/api/moodle/courses')
+      .then((res) => res.json())
+      .then((data) => {
+        console.log('Moodle Courses:', data);
+        setCourses(data);
+      })
+      .catch((err) => console.error(err));
+  }, []);
+
   const onLogin = () => { setPage('dashboard'); };
 
   const onLogout = async () => {
@@ -85,7 +97,17 @@ const App = () => {
     <Shell user={user} current={page}
            onNavigate={setPage}
            onLogout={onLogout}>
-      {body || <EmptyState title="Page not found"/>}
+            <div className="p-4">
+            <h2 className="text-xl font-bold mb-2">Moodle Courses Test</h2>
+
+            {courses.map((course) => (
+              <div key={course.id}>
+                {course.fullname}
+              </div>
+            ))}
+          </div>
+
+          {body || <EmptyState title="Page not found"/>}
     </Shell>
   );
 };

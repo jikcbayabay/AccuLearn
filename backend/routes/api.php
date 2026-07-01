@@ -14,37 +14,34 @@ use App\Http\Controllers\Teacher\StudentMonitoringController;
 use App\Http\Controllers\Teacher\FeedbackReviewController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\SystemLogController;
+use App\Http\Controllers\MoodleController;
 
-// Public auth routes
 Route::prefix('auth')->group(function () {
     Route::post('login',    [AuthController::class, 'login']);
     Route::post('register', [AuthController::class, 'register']);
 });
 
-// Authenticated auth routes (any role)
 Route::prefix('auth')->middleware('auth:sanctum')->group(function () {
     Route::get('me',      [AuthController::class, 'me']);
     Route::post('logout', [AuthController::class, 'logout']);
 });
 
-// Student routes
 Route::prefix('student')
     ->middleware(['auth:sanctum', 'role:student'])
     ->group(function () {
         Route::get('dashboard',                  [StudentDashboardController::class, 'index']);
-        Route::get('modules',                           [StudentModuleController::class, 'index']);
-        Route::get('modules/{id}',                      [StudentModuleController::class, 'show']);
-        Route::get('modules/{id}/quiz',                 [StudentModuleController::class, 'quiz']);
-        Route::get('modules/{id}/completions',          [LessonCompletionController::class, 'forModule']);
-        Route::post('competencies/{id}/complete',       [LessonCompletionController::class, 'complete']);
-        Route::get('competencies/{id}/lesson-quiz',     [StudentLessonController::class, 'lessonWithQuiz']);
-        Route::get('progress',                          [ProgressController::class, 'index']);
-        Route::post('assessments/submit',               [AssessmentController::class, 'submit']);
-        Route::get('feedback',                          [FeedbackController::class, 'index']);
-        Route::get('feedback/{competencyId}',           [FeedbackController::class, 'show']);
+        Route::get('modules',                    [StudentModuleController::class, 'index']);
+        Route::get('modules/{id}',              [StudentModuleController::class, 'show']);
+        Route::get('modules/{id}/quiz',         [StudentModuleController::class, 'quiz']);
+        Route::get('modules/{id}/completions',  [LessonCompletionController::class, 'forModule']);
+        Route::post('competencies/{id}/complete',[LessonCompletionController::class, 'complete']);
+        Route::get('competencies/{id}/lesson-quiz', [StudentLessonController::class, 'lessonWithQuiz']);
+        Route::get('progress',                  [ProgressController::class, 'index']);
+        Route::post('assessments/submit',       [AssessmentController::class, 'submit']);
+        Route::get('feedback',                  [FeedbackController::class, 'index']);
+        Route::get('feedback/{competencyId}',  [FeedbackController::class, 'show']);
     });
 
-// Teacher routes
 Route::prefix('teacher')
     ->middleware(['auth:sanctum', 'role:teacher'])
     ->group(function () {
@@ -54,7 +51,6 @@ Route::prefix('teacher')
         Route::post('feedback/{feedback}/approve', [FeedbackReviewController::class, 'approve']);
     });
 
-// Admin routes
 Route::prefix('admin')
     ->middleware(['auth:sanctum', 'role:admin'])
     ->group(function () {
@@ -63,6 +59,11 @@ Route::prefix('admin')
         Route::post('users',          [UserController::class, 'store']);
         Route::put('users/{id}',      [UserController::class, 'update']);
         Route::delete('users/{id}',   [UserController::class, 'destroy']);
-        Route::get('logs',                    [SystemLogController::class, 'index']);
+        Route::get('logs',            [SystemLogController::class, 'index']);
         Route::get('lessons-quizzes-mapping', [SystemLogController::class, 'lessonQuizMapping']);
     });
+
+Route::prefix('moodle')->group(function () {
+    Route::get('courses',    [MoodleController::class, 'courses']);
+    Route::get('categories', [MoodleController::class, 'categories']);
+});
