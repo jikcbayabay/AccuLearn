@@ -1,0 +1,22 @@
+.qbehaviour_confidence_box {
+    background-color: #f0f7ff;
+    border-left: 4px solid #0066cc;
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin-top: 12px;
+}
+.qbehaviour_confidence_label {
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #333;
+}
+.qbehaviour_confidence_radio {
+    margin-right: 8px;
+    cursor: pointer;
+}
+.qbehaviour_confidence_option {
+    cursor: pointer;
+    margin-bottom: 6px;
+    display: inline;
+}
+

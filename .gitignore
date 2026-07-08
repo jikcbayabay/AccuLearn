@@ -54,3 +54,10 @@ backend/Homestead.yaml
 backend/auth.json
 backend/.idea/
 backend/.vscode/
+
+# AccuLearn backend secrets - never commit
+acculearn-backend/.env
+acculearn-backend/.dbpass
+
+# Local-only project notes, not for the public repo
+PROJECT_HANDOFF.md
