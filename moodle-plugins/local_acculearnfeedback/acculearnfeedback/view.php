@@ -43,12 +43,12 @@ if (!$feedbackrow) {
 
 $feedback = json_decode($feedbackrow->feedback_json, true);
 
-echo html_writer::start_div('acculearn-feedback-card', ['style' => 'max-width: 800px; margin: auto;']);
+echo html_writer::start_div('al-page', ['style' => 'max-width: 800px;']);
 
 // Summary
 echo html_writer::tag('div',
-    html_writer::tag('h4', 'Summary') . html_writer::tag('p', s($feedback['summary'])),
-    ['style' => 'background:#f0f7ff; border-left:4px solid #0066cc; padding:16px; border-radius:4px; margin-bottom:16px;']
+    html_writer::tag('h4', 'Summary', ['style' => 'margin-top:0;']) . html_writer::tag('p', s($feedback['summary'])),
+    ['class' => 'al-card al-card--accent', 'style' => 'margin-bottom:16px;']
 );
 
 // Indices
@@ -59,8 +59,8 @@ foreach ([
     'Guessing Index' => $feedbackrow->gi,
 ] as $label => $value) {
     echo html_writer::div(
-        html_writer::tag('strong', $value) . html_writer::tag('div', $label, ['style' => 'font-size:0.85em; color:#555;']),
-        '', ['style' => 'flex:1; background:#f5f5f5; padding:12px; border-radius:4px; text-align:center;']
+        html_writer::tag('strong', $value) . html_writer::tag('span', $label),
+        'al-stat'
     );
 }
 echo html_writer::end_div();
@@ -86,7 +86,7 @@ if (!empty($feedback['corrective_guidance'])) {
 }
 
 // Encouragement
-echo html_writer::tag('p', s($feedback['encouragement']), ['style' => 'font-style:italic; color:#0066cc; margin-top:16px;']);
+echo html_writer::tag('p', s($feedback['encouragement']), ['style' => 'font-style:italic; color:var(--al-blue); margin-top:16px;']);
 
 echo html_writer::end_div();
 

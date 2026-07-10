@@ -91,7 +91,7 @@ foreach ($questions as $q) {
 echo html_writer::end_tag('tbody');
 echo html_writer::end_tag('table');
 
-echo html_writer::empty_tag('input', ['type' => 'submit', 'value' => 'Save Tags', 'class' => 'btn btn-primary', 'style' => 'margin-top:16px;']);
+echo html_writer::empty_tag('input', ['type' => 'submit', 'value' => 'Save Tags', 'class' => 'al-btn al-btn-primary', 'style' => 'margin-top:16px;']);
 echo html_writer::end_tag('form');
 
 echo $OUTPUT->footer();

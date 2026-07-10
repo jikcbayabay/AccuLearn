@@ -1,5 +1,6 @@
 <?php
 require_once(__DIR__ . '/../../config.php');
+require_once(__DIR__ . '/lib.php');
 require_login();
 
 global $DB, $OUTPUT, $PAGE, $USER;
@@ -27,41 +28,56 @@ $track = json_decode($trackrow->track_json, true);
 $narrative = $track['narrative'];
 $competencies = $track['competencies'];
 
-echo html_writer::start_div('', ['style' => 'max-width:900px; margin:auto;']);
+echo html_writer::start_div('al-page');
+
+// Anonymization badge: shows the student their own pseudonym so they can
+// recognize their row when the teacher discusses results anonymously.
+echo html_writer::div(
+    'You are ' . html_writer::tag('strong', local_acculearnfeedback_pseudonym($USER->id)),
+    'al-badge al-badge--pill',
+    ['style' => 'margin-bottom:16px;']
+);
 
 // Narrative card
-echo html_writer::start_div('', ['style' => 'background:#f0f7ff; border-left:4px solid #0066cc; padding:16px; border-radius:4px; margin-bottom:24px;']);
-echo html_writer::tag('h4', 'Overview');
+echo html_writer::start_div('al-card al-card--accent', ['style' => 'margin-bottom:24px;']);
+echo html_writer::tag('h4', 'Overview', ['style' => 'margin-top:0;']);
 echo html_writer::tag('p', s($narrative['overview']));
 echo html_writer::tag('h5', 'What to focus on next');
 echo html_writer::tag('p', s($narrative['next_focus']));
-echo html_writer::tag('p', s($narrative['encouragement']), ['style' => 'font-style:italic; color:#0066cc;']);
+echo html_writer::tag('p', s($narrative['encouragement']), ['style' => 'font-style:italic; color:var(--al-blue);']);
 echo html_writer::end_div();
 
 // Competency track cards
 echo html_writer::tag('h4', 'Your Progress by Competency');
 
-$statuscolors = [
-    'Mastered' => '#2e7d32',
-    'Developing' => '#f9a825',
-    'Needs Improvement' => '#c62828',
-    'Not Attempted' => '#757575',
+$masterytones = [
+    'Mastered' => 'mastered',
+    'Developing' => 'developing',
+    'Needs Improvement' => 'needs',
+    'Not Attempted' => 'neutral',
+];
+$masteryflags = [
+    'Mastered' => 'mastered',
+    'Developing' => 'developing',
+    'Needs Improvement' => 'needs',
+    'Not Attempted' => 'neutral',
 ];
 
 foreach ($competencies as $c) {
-    $color = $statuscolors[$c['mastery']] ?? '#757575';
-    echo html_writer::start_div('', [
-        'style' => "border:1px solid #ddd; border-left:6px solid $color; border-radius:4px; padding:14px 18px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;"
+    $tone = $masterytones[$c['mastery']] ?? 'neutral';
+    $flag = $masteryflags[$c['mastery']] ?? 'neutral';
+    echo html_writer::start_div("al-card al-card--flag-$flag", [
+        'style' => 'display:flex; justify-content:space-between; align-items:center;'
     ]);
 
     echo html_writer::start_div();
     echo html_writer::tag('strong', s($c['competency_name']), ['style' => 'font-size:1.05em;']);
-    echo html_writer::tag('div', ($c['cm'] !== null ? $c['cm'] . '% mastery' : 'Not yet attempted'), ['style' => 'color:#666; font-size:0.9em;']);
+    echo html_writer::tag('div', ($c['cm'] !== null ? $c['cm'] . '% mastery' : 'Not yet attempted'), ['style' => 'color:var(--al-ink-500); font-size:0.9em;']);
     echo html_writer::end_div();
 
     echo html_writer::start_div();
-    echo html_writer::tag('span', s($c['mastery']), ['style' => "background:$color; color:white; padding:4px 10px; border-radius:12px; font-size:0.85em; margin-right:8px;"]);
-    echo html_writer::tag('span', s($c['lp_label']), ['style' => 'color:#333; font-size:0.9em;']);
+    echo html_writer::tag('span', s($c['mastery']), ['class' => "al-badge al-badge--$tone", 'style' => 'margin-right:8px;']);
+    echo html_writer::tag('span', s($c['lp_label']), ['style' => 'color:var(--al-ink-700); font-size:0.9em;']);
     echo html_writer::end_div();
 
     echo html_writer::end_div();

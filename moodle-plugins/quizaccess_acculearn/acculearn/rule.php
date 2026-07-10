@@ -48,7 +48,34 @@ class quizaccess_acculearn extends access_rule_base {
             return get_string('prerequisiteblocked', 'quizaccess_acculearn');
         }
 
+        // Restudy prompt: once the student has used up all their attempts
+        // (the native numattempts rule enforces the 3-attempt hard cap) and
+        // still hasn't mastered the competency, tell them to restudy before
+        // moving on and point them at their learning track. "Not mastered"
+        // is the AccuLearn definition of a failed retake sequence, since the
+        // quizzes carry no explicit pass grade.
+        $maxattempts = (int)$this->quiz->attempts;
+        if ($maxattempts > 0 && $numprevattempts >= $maxattempts
+                && $result['mastery'] !== 'Mastered') {
+            $a = new stdClass();
+            $a->attempts = $maxattempts;
+            $a->competency = $this->get_competency_name($competencyid);
+            $a->trackurl = (new moodle_url('/local/acculearnfeedback/my_track.php'))->out(false);
+            return get_string('restudyprompt', 'quizaccess_acculearn', $a);
+        }
+
         return false;
+    }
+
+    /**
+     * Human-readable name of an AccuLearn competency, for the restudy prompt.
+     * Uses the prefixless custom table directly (no {braces}).
+     */
+    private function get_competency_name($competencyid) {
+        global $DB;
+        $name = $DB->get_field_sql(
+            "SELECT name FROM acculearn_competencies WHERE id = ?", [$competencyid]);
+        return $name ?: 'this competency';
     }
 
     /**

@@ -15,7 +15,10 @@ echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('confidencereport', 'report_confidence'));
 
 $exporturl = new moodle_url('/report/confidence/export.php');
-echo html_writer::link($exporturl, get_string('exportcsv', 'report_confidence'),
-    ['class' => 'btn btn-primary']);
+echo html_writer::link($exporturl, get_string('exportcsv', 'report_confidence'), [
+    'style' => 'display:inline-flex; align-items:center; gap:6px; font-weight:500; '
+        . 'border-radius:10px; padding:8px 16px; font-size:14px; text-decoration:none; '
+        . 'background:#24598a; color:#fff;',
+]);
 
 echo $OUTPUT->footer();

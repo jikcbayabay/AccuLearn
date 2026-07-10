@@ -1,0 +1,171 @@
+:root {
+  --al-blue: #24598a;
+  --al-blue-dark: #1d4870;
+  --al-blue-light: #2f6fa6;
+  --al-blue-50: #eaf1f8;
+  --al-green: #72b579;
+  --al-green-700: #4f8f57;
+  --al-green-50: #eef7ef;
+  --al-amber: #d9a441;
+  --al-amber-50: #fdf6e8;
+  --al-amber-ink: #a4751f;
+  --al-red: #c97064;
+  --al-red-50: #fbeeec;
+  --al-red-ink: #a04a40;
+  --al-ink-900: #1f2937;
+  --al-ink-700: #374151;
+  --al-ink-500: #6b7280;
+  --al-ink-200: #e5e7eb;
+  --al-ink-100: #f3f4f6;
+  --al-ink-50: #f7f8fa;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.al-page { max-width: 900px; margin: 0 auto; }
+
+.al-card {
+  background: #fff;
+  border: 1px solid var(--al-ink-200);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, .06);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.al-card--accent {
+  background: var(--al-blue-50);
+  border: none;
+  border-left: 4px solid var(--al-blue);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.al-card--flag-mastered   { border-left: 6px solid var(--al-green); }
+.al-card--flag-developing { border-left: 6px solid var(--al-amber); }
+.al-card--flag-needs      { border-left: 6px solid var(--al-red); }
+.al-card--flag-neutral    { border-left: 6px solid var(--al-ink-500); }
+.al-card--flag-flagged    { border-left: 6px solid var(--al-red); }
+.al-card--flag-approved   { border-left: 6px solid var(--al-green); }
+.al-card--flag-pending    { border-left: 6px solid var(--al-ink-500); }
+
+.al-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.al-badge--mastered   { background: var(--al-green-50); color: var(--al-green-700); }
+.al-badge--developing { background: var(--al-amber-50); color: var(--al-amber-ink); }
+.al-badge--needs       { background: var(--al-red-50); color: var(--al-red-ink); }
+.al-badge--neutral     { background: var(--al-ink-100); color: var(--al-ink-700); }
+.al-badge--approved    { background: var(--al-green-50); color: var(--al-green-700); }
+.al-badge--flagged     { background: var(--al-red-50); color: var(--al-red-ink); }
+.al-badge--pending     { background: var(--al-ink-100); color: var(--al-ink-500); }
+.al-badge--pill { background: var(--al-blue-50); color: var(--al-blue); border: 1px solid var(--al-blue-50); }
+
+.al-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-size: 14px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.al-btn:hover { text-decoration: none; }
+.al-btn-sm { padding: 6px 12px; font-size: 13px; border-radius: 8px; }
+
+.al-btn-primary { background: var(--al-blue); color: #fff; }
+.al-btn-primary:hover { background: var(--al-blue-dark); color: #fff; }
+
+.al-btn-outline { background: #fff; color: var(--al-blue); border-color: var(--al-blue); }
+.al-btn-outline:hover { background: var(--al-blue-50); color: var(--al-blue); }
+
+.al-btn-secondary { background: #fff; color: var(--al-ink-700); border-color: var(--al-ink-200); }
+.al-btn-secondary:hover { background: var(--al-ink-50); color: var(--al-ink-700); }
+
+.al-btn-success { background: var(--al-green); color: #fff; }
+.al-btn-success:hover { background: var(--al-green-700); color: #fff; }
+
+.al-btn-danger { background: var(--al-red); color: #fff; }
+.al-btn-danger:hover { background: var(--al-red-ink); color: #fff; }
+
+.al-btn-warning { background: var(--al-amber); color: #fff; }
+.al-btn-warning:hover { background: var(--al-amber-ink); color: #fff; }
+
+.al-stat {
+  flex: 1;
+  background: var(--al-ink-50);
+  border: 1px solid var(--al-ink-200);
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+}
+.al-stat strong { display: block; font-size: 20px; color: var(--al-ink-900); }
+.al-stat span { display: block; font-size: 12px; color: var(--al-ink-500); margin-top: 2px; }
+
+.al-toolbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: linear-gradient(135deg, var(--al-blue-dark) 0%, var(--al-blue) 55%, var(--al-blue-light) 100%);
+  box-shadow: 0 -3px 12px rgba(0, 0, 0, .25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 20px;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.al-toolbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 12px;
+  color: #fff;
+  font-size: .85em;
+  font-weight: 700;
+  letter-spacing: .5px;
+}
+
+.al-toolbar__mark {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, .15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.al-toolbar__link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e8ecf5;
+  text-decoration: none;
+  font-size: .92em;
+  font-weight: 500;
+  padding: 10px 16px;
+  border-radius: 8px;
+  transition: background .15s;
+}
+.al-toolbar__link:hover { background: rgba(255, 255, 255, .12); color: #fff; text-decoration: none; }

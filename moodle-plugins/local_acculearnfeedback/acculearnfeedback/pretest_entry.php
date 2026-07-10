@@ -102,7 +102,7 @@ if ($selecteduserid && $competencyid) {
         $existingmap[$e->questionid] = $e;
     }
 
-    echo html_writer::tag('p', count($questionrows) . ' questions available for this competency. Fill in ONLY the ones actually used on the paper pre-test; leave the rest blank.'); echo html_writer::link(new moodle_url('/local/acculearnfeedback/generate_pretest_track.php', ['userid' => $selecteduserid]), 'Generate Initial Track for this Student', ['class' => 'btn btn-success', 'style' => 'margin-bottom:16px;']);
+    echo html_writer::tag('p', count($questionrows) . ' questions available for this competency. Fill in ONLY the ones actually used on the paper pre-test; leave the rest blank.'); echo html_writer::link(new moodle_url('/local/acculearnfeedback/generate_pretest_track.php', ['userid' => $selecteduserid]), 'Generate Initial Track for this Student', ['class' => 'al-btn al-btn-success', 'style' => 'margin-bottom:16px;']);
 
     echo html_writer::start_tag('form', ['method' => 'post', 'action' => $PAGE->url . '?userid=' . $selecteduserid . '&competencyid=' . $competencyid]);
     echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
@@ -149,7 +149,7 @@ if ($selecteduserid && $competencyid) {
     }
 
     echo html_writer::end_tag('table');
-    echo html_writer::empty_tag('input', ['type' => 'submit', 'value' => 'Save Responses', 'class' => 'btn btn-primary', 'style' => 'margin-top:16px;']);
+    echo html_writer::empty_tag('input', ['type' => 'submit', 'value' => 'Save Responses', 'class' => 'al-btn al-btn-primary', 'style' => 'margin-top:16px;']);
     echo html_writer::end_tag('form');
 }
 
