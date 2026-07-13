@@ -35,6 +35,15 @@ class quizaccess_acculearn extends access_rule_base {
             return false; // Quiz not mapped to any AccuLearn competency, don't gate it.
         }
 
+        // Admins can disable gating for a specific competency from the
+        // Sequence & Visibility page (admin_sequence.php) - e.g. to let
+        // students into a competency immediately without earlier mastery.
+        $gatingenabled = $DB->get_field_sql(
+            "SELECT gating_enabled FROM acculearn_competencies WHERE id = ?", [$competencyid]);
+        if (!$gatingenabled) {
+            return false;
+        }
+
         $backendpath = '/var/www/html/acculearn-backend/mastery_engine.php';
         if (!file_exists($backendpath)) {
             return false; // Backend unavailable, fail open rather than blocking everyone.

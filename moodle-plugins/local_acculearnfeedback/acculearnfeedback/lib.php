@@ -112,6 +112,7 @@ function local_acculearnfeedback_before_footer() {
 
     $context = context_system::instance();
     $isteacher = has_capability('moodle/course:update', $context);
+    $isadmin = has_capability('moodle/site:config', $context);
 
     $items = [];
     $items[] = [
@@ -130,6 +131,14 @@ function local_acculearnfeedback_before_footer() {
             'url' => $CFG->wwwroot . '/local/acculearnfeedback/pretest_entry.php',
             'icon' => 'fa-pencil',
             'label' => 'Pre-Test Entry',
+        ];
+    }
+
+    if ($isadmin) {
+        $items[] = [
+            'url' => $CFG->wwwroot . '/local/acculearnfeedback/admin_sequence.php',
+            'icon' => 'fa-sliders-h',
+            'label' => 'Sequence Settings',
         ];
     }
 
