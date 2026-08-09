@@ -190,7 +190,31 @@ class quizaccess_acculearn extends access_rule_base {
         return null;
     }
 
+    /**
+     * Deliberately silent on the quiz view page.
+     *
+     * Moodle prints every enabled rule's description() in the quiz information
+     * list, next to "Attempts allowed" and "Grade to pass" - whether or not the
+     * rule is actually restricting THIS student. This one used to return the
+     * plugin name, so every student saw the bare phrase "AccuLearn prerequisite
+     * gating" on the page they visit to check their grade: internal jargon,
+     * shown even to students who were never gated, and telling them nothing
+     * they could act on.
+     *
+     * Returning '' opts out entirely - access_manager::accumulate_messages()
+     * skips empty strings, so no blank list item is left behind. This is the
+     * documented default from access_rule_base ("not all rules consider
+     * themselves important enough to output a description").
+     *
+     * NOTE: this hides only the passive notice. It does NOT weaken the gate.
+     * A student who is actually blocked still gets the full explanation from
+     * prevent_new_attempt() above - prerequisiteblocked, summativeblocked or
+     * restudyprompt - each of which names the competency and links to My
+     * Learning Track.
+     *
+     * @return string always empty.
+     */
     public function description() {
-        return get_string('pluginname', 'quizaccess_acculearn');
+        return '';
     }
 }
