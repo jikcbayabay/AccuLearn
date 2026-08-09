@@ -11,7 +11,11 @@ require_capability('local/acculearnfeedback:managesequence', $context);
 $PAGE->set_url('/local/acculearnfeedback/admin_sequence.php');
 $PAGE->set_context($context);
 $PAGE->set_title('Competency Sequence & Visibility');
-$PAGE->set_heading('Competency Sequence & Visibility');
+// Boost paints \$PAGE->set_heading() in the full-width page-header region,
+// which is a different element from the \$OUTPUT->heading() printed at the top
+// of the content column - so passing the page's own title to both rendered it
+// twice, one above the other. The page heading is meant to name the SITE.
+$PAGE->set_heading($SITE->fullname);
 
 /**
  * Every AccuLearn competency, in current sequence order. This same table

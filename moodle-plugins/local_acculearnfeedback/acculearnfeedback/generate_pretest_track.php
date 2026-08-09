@@ -34,9 +34,14 @@ if (!$userid) {
 $PAGE->set_url('/local/acculearnfeedback/generate_pretest_track.php');
 $PAGE->set_context($context);
 $PAGE->set_title('Generate Initial Track');
-$PAGE->set_heading('Generate Initial Track');
+// Boost paints \$PAGE->set_heading() in the full-width page-header region,
+// which is a different element from the \$OUTPUT->heading() printed at the top
+// of the content column - so passing the page's own title to both rendered it
+// twice, one above the other. The page heading is meant to name the SITE.
+$PAGE->set_heading($SITE->fullname);
 
 echo $OUTPUT->header();
+echo $OUTPUT->heading('Generate Initial Track');
 
 $user = $DB->get_record('user', ['id' => $userid], '*', MUST_EXIST);
 $studentName = $user->firstname . ' ' . $user->lastname;
