@@ -30,6 +30,15 @@ class observer {
             }
         }
 
+        // NOTE: quiz-submission usage logging deliberately does NOT happen here
+        // any more. local_acculearnfeedback now registers its own observer on
+        // this same event (see local/acculearnfeedback/db/events.php), and it
+        // records richer detail - the quiz name, attempt number, raw score and
+        // course. Keeping the call here as well meant a single submission wrote
+        // TWO usage-log rows under two different action slugs, inflating the
+        // engagement totals the study reports. This class keeps its real job:
+        // queueing feedback generation.
+
         // Queue AI feedback generation as an ad-hoc task, guaranteed to run
         // AFTER this transaction commits (avoids cross-connection visibility issues
         // with our separate AccuLearn backend database connection).

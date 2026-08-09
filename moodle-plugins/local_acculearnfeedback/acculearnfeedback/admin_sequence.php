@@ -6,7 +6,7 @@ require_login();
 global $DB, $OUTPUT, $PAGE;
 
 $context = context_system::instance();
-require_capability('moodle/site:config', $context);
+require_capability('local/acculearnfeedback:managesequence', $context);
 
 $PAGE->set_url('/local/acculearnfeedback/admin_sequence.php');
 $PAGE->set_context($context);
@@ -29,16 +29,28 @@ $notice = null;
 $noticetype = \core\output\notification::NOTIFY_SUCCESS;
 
 if (data_submitted() && confirm_sesskey()) {
-    $formaction = required_param('formaction', PARAM_ALPHA);
+    // formaction is either the literal 'save', or 'moveup_<id>'/'movedown_<id>'
+    // for the per-row reorder buttons. Those buttons must live INSIDE the
+    // same <form> as the prerequisite/gating dropdowns below (nested <form>
+    // elements are invalid HTML and browsers silently mishandle them), so
+    // each row's arrow is a submit button whose own name=value pair carries
+    // both the action and the target row - not a separate form or a plain
+    // <a href> link. A previous version used <a href> GET links gated
+    // behind this same "data_submitted() && confirm_sesskey()" check;
+    // data_submitted() only ever returns true for a POST request
+    // (see lib/weblib.php), so those links could never actually reach this
+    // code - the Move Up/Down buttons did nothing at all.
+    $formaction = required_param('formaction', PARAM_ALPHANUMEXT);
     $competencies = local_acculearnfeedback_get_competencies_ordered();
 
-    if ($formaction === 'moveup' || $formaction === 'movedown') {
-        $competencyid = required_param('competencyid', PARAM_INT);
+    if (preg_match('/^(moveup|movedown)_(\d+)$/', $formaction, $matches)) {
+        $moveaction = $matches[1];
+        $competencyid = (int) $matches[2];
         $ids = array_values(array_map(fn($c) => $c->id, $competencies));
         $pos = array_search($competencyid, $ids, true);
 
         if ($pos !== false) {
-            $swapwith = ($formaction === 'moveup') ? $pos - 1 : $pos + 1;
+            $swapwith = ($moveaction === 'moveup') ? $pos - 1 : $pos + 1;
             if ($swapwith >= 0 && $swapwith < count($ids)) {
                 $a = $competencies[$competencyid];
                 $b = $competencies[$ids[$swapwith]];
@@ -79,7 +91,14 @@ if (data_submitted() && confirm_sesskey()) {
                     [$newprereq, $newgating, $c->id]
                 );
             }
-            redirect($PAGE->url, 'Sequence settings saved.', null, \core\output\notification::NOTIFY_SUCCESS);
+            // Prerequisite/gating changes can immediately change which
+            // students should be in each course's "AccuLearn Unlocked"
+            // group (used for Restrict-access-based gating beyond just
+            // quiz attempts), so resync right away rather than waiting for
+            // the next scheduled run or the next quiz submission.
+            $synced = local_acculearnfeedback_sync_all_unlock_groups();
+            redirect($PAGE->url, "Sequence settings saved. Unlock groups resynced for $synced students.",
+                null, \core\output\notification::NOTIFY_SUCCESS);
         }
     }
 }
@@ -99,18 +118,22 @@ echo html_writer::div(
     'This controls the real prerequisite chain used everywhere in AccuLearn: the mastery ' .
     'engine\'s Learning Pathway (LP) computation, the learning track narrative order, and ' .
     'the quiz-attempt gate. Reordering a competency or changing its prerequisite here changes ' .
-    'those decisions immediately for every student - it is not a preview.',
+    'those decisions immediately for every student - it is not a preview. For competencies ' .
+    'mapped to a course below, the same LP decision also controls membership in that course\'s ' .
+    '"AccuLearn Unlocked" group - use Moodle\'s native "Restrict access -> Group" on any ' .
+    'activity in that course to gate its visibility on real mastery data, not just quiz attempts.',
     'al-card al-card--accent'
 );
 
 echo html_writer::start_tag('form', ['method' => 'post', 'action' => $PAGE->url]);
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
-echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'formaction', 'value' => 'save']);
 
+echo html_writer::start_div('al-table-wrap');
 echo html_writer::start_tag('table', ['class' => 'generaltable', 'style' => 'width:100%;']);
 echo html_writer::tag('tr',
     html_writer::tag('th', 'Order') .
     html_writer::tag('th', 'Competency') .
+    html_writer::tag('th', 'Course') .
     html_writer::tag('th', 'Prerequisite') .
     html_writer::tag('th', 'Gating enabled')
 );
@@ -119,20 +142,40 @@ $total = count($competencies);
 $index = 0;
 foreach ($competencies as $c) {
     $index++;
-    $moveupurl = new moodle_url($PAGE->url, ['formaction' => 'moveup', 'competencyid' => $c->id, 'sesskey' => sesskey()]);
-    $movedownurl = new moodle_url($PAGE->url, ['formaction' => 'movedown', 'competencyid' => $c->id, 'sesskey' => sesskey()]);
 
+    // Real <button type="submit"> elements inside the one outer form
+    // (not <a href> links - those can never trigger the data_submitted()
+    // gate above, since that only fires on POST) and not a second nested
+    // <form> (invalid HTML). Each button's own name/value pair identifies
+    // which row and which direction; clicking one submits the whole form,
+    // same as the "Save Changes" button, just with a different formaction.
     $movecell = html_writer::tag('strong', $index);
     if ($index > 1) {
-        $movecell .= ' ' . html_writer::link($moveupurl, '&uarr;', ['class' => 'al-btn al-btn-sm al-btn-secondary', 'title' => 'Move up']);
+        $movecell .= ' ' . html_writer::tag('button', '&uarr;', [
+            'type' => 'submit', 'name' => 'formaction', 'value' => "moveup_{$c->id}",
+            'class' => 'al-btn al-btn-sm al-btn-secondary', 'title' => 'Move up',
+        ]);
     }
     if ($index < $total) {
-        $movecell .= ' ' . html_writer::link($movedownurl, '&darr;', ['class' => 'al-btn al-btn-sm al-btn-secondary', 'title' => 'Move down']);
+        $movecell .= ' ' . html_writer::tag('button', '&darr;', [
+            'type' => 'submit', 'name' => 'formaction', 'value' => "movedown_{$c->id}",
+            'class' => 'al-btn al-btn-sm al-btn-secondary', 'title' => 'Move down',
+        ]);
     }
 
     echo html_writer::start_tag('tr');
     echo html_writer::tag('td', $movecell);
-    echo html_writer::tag('td', html_writer::tag('strong', s($c->name)) . html_writer::tag('div', $c->code, ['style' => 'color:var(--al-ink-500); font-size:0.85em;']));
+    echo html_writer::tag('td', html_writer::tag('strong', s($c->name)) . html_writer::tag('div', s($c->code), ['style' => 'color:var(--al-ink-500); font-size:0.85em;']));
+
+    if ($c->courseid) {
+        $coursename = $DB->get_field('course', 'fullname', ['id' => $c->courseid]);
+        echo html_writer::tag('td', html_writer::link(
+            new moodle_url('/course/view.php', ['id' => $c->courseid]), s($coursename)
+        ));
+    } else {
+        echo html_writer::tag('td', html_writer::tag('span', 'Not mapped yet',
+            ['style' => 'color:var(--al-ink-500); font-style:italic;']));
+    }
 
     echo html_writer::start_tag('td');
     echo html_writer::start_tag('select', ['name' => "prerequisite_{$c->id}"]);
@@ -159,7 +202,11 @@ foreach ($competencies as $c) {
 }
 
 echo html_writer::end_tag('table');
-echo html_writer::empty_tag('input', ['type' => 'submit', 'value' => 'Save Changes', 'class' => 'al-btn al-btn-primary', 'style' => 'margin-top:16px;']);
+echo html_writer::end_div();
+echo html_writer::empty_tag('input', [
+    'type' => 'submit', 'name' => 'formaction', 'value' => 'save',
+    'class' => 'al-btn al-btn-primary', 'style' => 'margin-top:16px;',
+]);
 echo html_writer::end_tag('form');
 
 echo html_writer::end_div();

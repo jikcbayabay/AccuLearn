@@ -1,9 +1,29 @@
 <?php
 require_once('../../config.php');
+require_once($CFG->dirroot . '/local/acculearnfeedback/lib.php');
 require_login();
 
 $context = context_system::instance();
 require_capability('report/confidence:view', $context);
+
+// This export is a bulk dump of every confidence rating and answer on the
+// site, so it is protected the same way any other state-revealing bulk
+// action is: an explicit sesskey, so it cannot be triggered simply by
+// getting a logged-in teacher's browser to load a URL.
+require_sesskey();
+
+// Anonymisation, matching teacher_review.php exactly. Previously this
+// export unconditionally wrote every student's real first and last name
+// into the CSV for anyone holding report/confidence:view - which the
+// access.php archetypes grant to editingteacher. That meant a teacher who
+// is deliberately NOT allowed to un-anonymise students in the AI review
+// screen could obtain the identical mapping just by downloading this file,
+// silently defeating the pseudonymisation the rest of the system enforces
+// (and the anonymisation commitment in the study's ethics section).
+// Real names now require the same dedicated capability as the reveal
+// toggle, and the default export is pseudonymous.
+$canreveal = has_capability('local/acculearnfeedback:revealstudentnames', $context);
+$revealnames = $canreveal ? optional_param('reveal', 0, PARAM_BOOL) : 0;
 
 global $DB;
 
@@ -58,20 +78,39 @@ $sql = "
 
 $recordset = $DB->get_recordset_sql($sql);
 
-header('Content-Type: text/csv');
-header('Content-Disposition: attachment; filename="confidence_export.csv"');
+header('Content-Type: text/csv; charset=utf-8');
+header('Content-Disposition: attachment; filename="confidence_export'
+    . ($revealnames ? '_identified' : '_anonymised') . '.csv"');
 
 $out = fopen('php://output', 'w');
-fputcsv($out, ['Student ID', 'First Name', 'Last Name', 'Quiz', 'Attempt',
-               'Q#', 'Question ID', 'Question Name', 'Answer', 'Result',
-               'Confidence', 'Submitted At'], ',', '"', '\\');
+
+if ($revealnames) {
+    fputcsv($out, ['Student ID', 'First Name', 'Last Name', 'Quiz', 'Attempt',
+                   'Q#', 'Question ID', 'Question Name', 'Answer', 'Result',
+                   'Confidence', 'Submitted At'], ',', '"', '\\');
+} else {
+    fputcsv($out, ['Pseudonym', 'Quiz', 'Attempt',
+                   'Q#', 'Question ID', 'Question Name', 'Answer', 'Result',
+                   'Confidence', 'Submitted At'], ',', '"', '\\');
+}
 
 foreach ($recordset as $r) {
-    fputcsv($out, [
-        $r->student_id, $r->firstname, $r->lastname, $r->quiz_name,
-        $r->attempt, $r->question_number, $r->question_id, $r->question_name,
-        $r->selected_answer, $r->result, $r->confidence_level, $r->submitted_at
-    ], ',', '"', '\\');
+    if ($revealnames) {
+        $row = [
+            $r->student_id, $r->firstname, $r->lastname, $r->quiz_name,
+            $r->attempt, $r->question_number, $r->question_id, $r->question_name,
+            $r->selected_answer, $r->result, $r->confidence_level, $r->submitted_at,
+        ];
+    } else {
+        // No student_id either: the numeric id is itself a re-identifier
+        // when combined with any other export or the Moodle UI.
+        $row = [
+            local_acculearnfeedback_pseudonym($r->student_id), $r->quiz_name,
+            $r->attempt, $r->question_number, $r->question_id, $r->question_name,
+            $r->selected_answer, $r->result, $r->confidence_level, $r->submitted_at,
+        ];
+    }
+    fputcsv($out, local_acculearnfeedback_csv_row($row), ',', '"', '\\');
 }
 
 $recordset->close();

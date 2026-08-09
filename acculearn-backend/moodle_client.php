@@ -16,9 +16,21 @@ class MoodleClient {
         curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($params));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+        // Bounded waits: this is a loopback call to our own Moodle, but an
+        // unbounded curl (the default) would still hang the caller forever
+        // if PHP-FPM/Apache were saturated - which is exactly when this is
+        // most likely to happen.
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
         $response = curl_exec($ch);
+        $curlerror = curl_error($ch);
         $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
+
+        if ($response === false) {
+            throw new Exception("Moodle API request failed (transport): $curlerror");
+        }
 
         if ($httpcode !== 200) {
             throw new Exception("Moodle API HTTP error: $httpcode");

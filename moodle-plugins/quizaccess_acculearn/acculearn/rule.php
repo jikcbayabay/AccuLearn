@@ -57,15 +57,56 @@ class quizaccess_acculearn extends access_rule_base {
             return get_string('prerequisiteblocked', 'quizaccess_acculearn');
         }
 
-        // Restudy prompt: once the student has used up all their attempts
-        // (the native numattempts rule enforces the 3-attempt hard cap) and
-        // still hasn't mastered the competency, tell them to restudy before
-        // moving on and point them at their learning track. "Not mastered"
-        // is the AccuLearn definition of a failed retake sequence, since the
-        // quizzes carry no explicit pass grade.
+        // Summative gate: the summative assessment for a competency stays
+        // locked until EVERY formative quiz in that same module has been
+        // passed. Formatives are the practice gates (80%); the summative is
+        // the mastery decision (85%), so sitting it before the practice is
+        // complete defeats the point of the sequence.
+        //
+        // Matched on quiz name, consistent with how the competency's quizzes
+        // are named across all seven courses. Fails OPEN for a quiz that
+        // isn't recognised as summative, so an unexpected name can never
+        // accidentally lock a formative.
+        if (stripos($this->quiz->name, 'summative') !== false) {
+            $status = $engine->competencyQuizStatus($USER->id, $competencyid);
+            if (!$status['formatives_passed']) {
+                $outstanding = [];
+                foreach ($status['quizzes'] as $q) {
+                    if (!$q['is_summative'] && !$q['passed']) {
+                        $outstanding[] = $q['name'];
+                    }
+                }
+                $a = new stdClass();
+                $a->competency = $this->get_competency_name($competencyid);
+                $a->outstanding = $outstanding ? implode(', ', $outstanding) : 'the formative quizzes';
+                $a->trackurl = (new moodle_url('/local/acculearnfeedback/my_track.php'))->out(false);
+                return get_string('summativeblocked', 'quizaccess_acculearn', $a);
+            }
+        }
+
+        // Restudy prompt: the student has used all their attempts (the native
+        // numattempts rule enforces the 3-attempt cap) and still has not
+        // PASSED THIS QUIZ.
+        //
+        // Now keyed on this quiz's own pass mark rather than on whether the
+        // whole competency is mastered. Under the old test a student who had
+        // passed this quiz but not yet the summative would still be told to
+        // restudy it, which was simply wrong. Every quiz now carries a real
+        // gradepass (formatives 80%, summative 85%), so "failed the retake
+        // sequence" has a precise meaning it did not have before.
+        //
+        // The message directs them to their teacher, who can grant extra
+        // attempts via Moodle's user override - the escape hatch that stops
+        // one quiz permanently freezing a student out of the whole course.
         $maxattempts = (int)$this->quiz->attempts;
-        if ($maxattempts > 0 && $numprevattempts >= $maxattempts
-                && $result['mastery'] !== 'Mastered') {
+        $thisquizpassed = false;
+        foreach ($engine->competencyQuizStatus($USER->id, $competencyid)['quizzes'] as $q) {
+            if ((int)$q['id'] === (int)$quizid) {
+                $thisquizpassed = $q['passed'];
+                break;
+            }
+        }
+        if ($maxattempts > 0 && $numprevattempts >= $maxattempts && !$thisquizpassed) {
             $a = new stdClass();
             $a->attempts = $maxattempts;
             $a->competency = $this->get_competency_name($competencyid);

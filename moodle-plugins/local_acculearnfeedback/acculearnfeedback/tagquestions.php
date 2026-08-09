@@ -5,7 +5,7 @@ require_login();
 global $DB, $OUTPUT, $PAGE;
 
 $context = context_system::instance();
-require_capability('moodle/site:config', $context);
+require_capability('local/acculearnfeedback:managesequence', $context);
 
 $PAGE->set_url('/local/acculearnfeedback/tagquestions.php');
 $PAGE->set_context($context);
@@ -40,6 +40,13 @@ if (data_submitted() && confirm_sesskey()) {
 echo $OUTPUT->header();
 echo $OUTPUT->heading('Tag Questions to Competencies');
 
+echo html_writer::start_div('al-page');
+echo html_writer::div(
+    'Assign each multiple-choice question to the AccuLearn competency it belongs to. '
+    . 'This mapping drives mastery scoring, quiz gating, and learning-track generation for every student.',
+    'al-card al-card--accent'
+);
+
 $competencies = $DB->get_records_sql("SELECT * FROM acculearn_competencies ORDER BY sequence");
 
 $questions = $DB->get_records_sql("
@@ -60,6 +67,7 @@ foreach ($currentTags as $t) {
 echo html_writer::start_tag('form', ['method' => 'post', 'action' => $PAGE->url]);
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
 
+echo html_writer::start_div('al-table-wrap');
 echo html_writer::start_tag('table', ['class' => 'generaltable', 'style' => 'width:100%']);
 echo html_writer::start_tag('thead');
 echo html_writer::tag('tr',
@@ -73,14 +81,14 @@ foreach ($questions as $q) {
     echo html_writer::tag('td', s($q->name) .
         html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'questionid[]', 'value' => $q->id])
     );
-    echo html_writer::tag('td', strip_tags($q->questiontext), ['style' => 'max-width:400px;']);
+    echo html_writer::tag('td', s(strip_tags($q->questiontext)), ['style' => 'max-width:400px;']);
 
     echo html_writer::start_tag('td');
     echo html_writer::start_tag('select', ['name' => "competency_{$q->id}"]);
     echo html_writer::tag('option', '-- none --', ['value' => 0]);
     foreach ($competencies as $c) {
         $selected = (isset($tagMap[$q->id]) && $tagMap[$q->id] == $c->id) ? ['selected' => 'selected'] : [];
-        echo html_writer::tag('option', $c->name, array_merge(['value' => $c->id], $selected));
+        echo html_writer::tag('option', s($c->name), array_merge(['value' => $c->id], $selected));
     }
     echo html_writer::end_tag('select');
     echo html_writer::end_tag('td');
@@ -90,8 +98,11 @@ foreach ($questions as $q) {
 
 echo html_writer::end_tag('tbody');
 echo html_writer::end_tag('table');
+echo html_writer::end_div();
 
 echo html_writer::empty_tag('input', ['type' => 'submit', 'value' => 'Save Tags', 'class' => 'al-btn al-btn-primary', 'style' => 'margin-top:16px;']);
 echo html_writer::end_tag('form');
+
+echo html_writer::end_div();
 
 echo $OUTPUT->footer();

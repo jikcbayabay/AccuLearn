@@ -6,12 +6,12 @@ require_login();
 global $DB, $OUTPUT, $PAGE, $USER;
 
 $context = context_system::instance();
-require_capability('moodle/course:update', $context);
+require_capability('local/acculearnfeedback:reviewaioutput', $context);
 
-// Anonymization: names render as pseudonyms by default. Only admins/managers
-// (moodle/role:assign at system context; plain teachers don't have it) may
+// Anonymization: names render as pseudonyms by default. Only users with the
+// dedicated reveal capability (managers by default, not plain teachers) may
 // de-anonymize, and the check is enforced server-side, not just hidden.
-$canreveal = has_capability('moodle/role:assign', $context);
+$canreveal = has_capability('local/acculearnfeedback:revealstudentnames', $context);
 $revealnames = $canreveal ? optional_param('reveal', 0, PARAM_BOOL) : 0;
 
 $PAGE->set_url('/local/acculearnfeedback/teacher_review.php');
@@ -57,6 +57,9 @@ if (data_submitted() && confirm_sesskey()) {
         $gradegrade->grade_item =& $gc->gradeitem;
         $gradegrade->set_overridden(true);
 
+        local_acculearnfeedback_log_review('feedback', $feedbackid, $gc->attempt->userid, $USER->id,
+            'gradeoverride', trim($gradenote . ' (new grade: ' . $newgrade . ')'));
+
         redirect($PAGE->url, 'Grade overridden successfully.', null, \core\output\notification::NOTIFY_SUCCESS);
     }
 
@@ -66,13 +69,33 @@ if (data_submitted() && confirm_sesskey()) {
     $action = required_param('reviewaction', PARAM_ALPHA); // 'approve' or 'flag'
     $note = optional_param('teachernote', '', PARAM_TEXT);
 
+    // Both values must be validated against an explicit allowlist, not
+    // funnelled through a two-branch ternary. Previously ANY unrecognised
+    // $type silently fell through to the 'track' branch (so type=xyz&id=5
+    // would mark LEARNING TRACK 5 reviewed, even though the caller asked
+    // about feedback 5 - a wrong-record write), and any unrecognised
+    // $action silently meant "approve", so a malformed request could
+    // approve AI output that nobody actually reviewed.
+    if (!in_array($type, ['feedback', 'track'], true)) {
+        redirect($PAGE->url, 'Unrecognised review target.', null, \core\output\notification::NOTIFY_ERROR);
+    }
+    if (!in_array($action, ['approve', 'flag'], true)) {
+        redirect($PAGE->url, 'Unrecognised review action.', null, \core\output\notification::NOTIFY_ERROR);
+    }
+
     $table = ($type === 'feedback') ? 'acculearn_feedback' : 'acculearn_learning_tracks';
     $flagged = ($action === 'flag') ? 1 : 0;
+
+    $targetuserid = $DB->get_field_sql("SELECT userid FROM $table WHERE id = ?", [$id]);
 
     $DB->execute(
         "UPDATE $table SET reviewed = 1, reviewed_by = ?, reviewed_at = ?, teacher_note = ?, flagged = ? WHERE id = ?",
         [$USER->id, time(), $note, $flagged, $id]
     );
+
+    if ($targetuserid) {
+        local_acculearnfeedback_log_review($type, $id, $targetuserid, $USER->id, $action, $note);
+    }
 
     redirect($PAGE->url, 'Review saved.', null, \core\output\notification::NOTIFY_SUCCESS);
 }
@@ -81,6 +104,76 @@ echo $OUTPUT->header();
 echo $OUTPUT->heading('AI Output Review');
 
 $tab = optional_param('tab', 'feedback', PARAM_ALPHA);
+
+// ---- Students stuck on a quiz ----
+//
+// Now that mastery requires PASSING every quiz, and each quiz allows only
+// three attempts, a student who cannot clear one 5-question formative would
+// be frozen out of the summative, the competency, and every competency after
+// it - permanently, with no in-system recovery. The agreed escape hatch is a
+// teacher granting extra attempts (Moodle user override), which only works if
+// the teacher can see who is stuck. This is that list.
+$stuck = $DB->get_records_sql("
+    SELECT qa.userid, qa.quiz, u.firstname, u.lastname, q.name AS quizname,
+           c.fullname AS coursename, q.attempts AS maxattempts,
+           COUNT(*) AS attemptsused,
+           MAX(gg.finalgrade) AS bestgrade, MAX(gi.gradepass) AS gradepass
+      FROM {quiz_attempts} qa
+      JOIN {quiz} q  ON q.id = qa.quiz
+      JOIN {user} u  ON u.id = qa.userid
+      JOIN {course} c ON c.id = q.course
+      JOIN {grade_items} gi ON gi.iteminstance = q.id AND gi.itemmodule = 'quiz'
+       AND gi.itemtype = 'mod' AND gi.courseid = q.course
+ LEFT JOIN {grade_grades} gg ON gg.itemid = gi.id AND gg.userid = qa.userid
+     WHERE qa.state = 'finished' AND qa.preview = 0 AND q.attempts > 0
+  GROUP BY qa.userid, qa.quiz, u.firstname, u.lastname, q.name, c.fullname, q.attempts
+    HAVING COUNT(*) >= q.attempts
+       AND (MAX(gg.finalgrade) IS NULL OR MAX(gg.finalgrade) < MAX(gi.gradepass))
+  ORDER BY c.fullname, q.name");
+
+if ($stuck) {
+    echo html_writer::start_div('al-card al-card--flag-needs', ['style' => 'margin-bottom:20px;']);
+    echo html_writer::tag('h4',
+        '<i class="fa fa-triangle-exclamation" aria-hidden="true"></i>Students out of attempts ('
+        . count($stuck) . ')', ['style' => 'margin-top:0;']);
+    echo html_writer::tag('p',
+        'These students have used every attempt on a quiz without reaching its passing mark, so the '
+        . 'competency - and everything after it - stays locked for them. Grant extra attempts from the '
+        . 'quiz\'s <em>User overrides</em> page once you are satisfied they have restudied.',
+        ['style' => 'color:var(--al-ink-500); font-size:0.9em;']);
+    echo html_writer::start_div('al-table-wrap');
+    echo html_writer::start_tag('table', ['class' => 'generaltable', 'style' => 'width:100%;']);
+    echo html_writer::tag('tr',
+        html_writer::tag('th', 'Student') . html_writer::tag('th', 'Competency course') .
+        html_writer::tag('th', 'Quiz') . html_writer::tag('th', 'Attempts') .
+        html_writer::tag('th', 'Best / needed') . html_writer::tag('th', ''));
+    foreach ($stuck as $s) {
+        $who = $revealnames
+            ? s($s->firstname . ' ' . $s->lastname)
+            : local_acculearnfeedback_pseudonym($s->userid);
+        $cm = get_coursemodule_from_instance('quiz', $s->quiz);
+        $overrideurl = $cm
+            ? new moodle_url('/mod/quiz/overrides.php', ['cmid' => $cm->id, 'mode' => 'user'])
+            : null;
+        echo html_writer::tag('tr',
+            html_writer::tag('td', $who) .
+            html_writer::tag('td', s($s->coursename)) .
+            html_writer::tag('td', s($s->quizname)) .
+            html_writer::tag('td', html_writer::tag('span', $s->attemptsused . '/' . $s->maxattempts,
+                ['class' => 'tnum'])) .
+            html_writer::tag('td', html_writer::tag('span',
+                ($s->bestgrade === null ? '-' : round($s->bestgrade, 2)) . ' / ' . round($s->gradepass, 2),
+                ['class' => 'tnum'])) .
+            html_writer::tag('td', $overrideurl
+                ? html_writer::link($overrideurl, 'Grant attempts',
+                    ['class' => 'al-btn al-btn-sm al-btn-secondary'])
+                : '')
+        );
+    }
+    echo html_writer::end_tag('table');
+    echo html_writer::end_div();
+    echo html_writer::end_div();
+}
 
 echo html_writer::start_tag('div', ['style' => 'margin-bottom:20px;']);
 echo html_writer::link(new moodle_url('/local/acculearnfeedback/teacher_review.php', ['tab' => 'feedback']),
@@ -123,11 +216,15 @@ if ($tab === 'feedback') {
 
         echo html_writer::start_div("al-card al-card--flag-$statustone");
 
-        echo html_writer::tag('div',
-            html_writer::tag('strong', $displayname) . ' — ' . s($r->quizname) .
-            html_writer::tag('span', $statuslabel, ['class' => "al-badge al-badge--$statustone", 'style' => 'float:right;'])
-        );
-        echo html_writer::tag('p', 'CM: ' . $r->cm . '%  CMI: ' . $r->cmi . '  GI: ' . $r->gi, ['style' => 'color:var(--al-ink-500); font-size:0.9em;']);
+        echo html_writer::start_div('', ['style' => 'display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; gap:8px;']);
+        echo html_writer::tag('div', html_writer::tag('strong', $displayname) . ' — ' . s($r->quizname));
+        echo html_writer::tag('span', $statuslabel, ['class' => "al-badge al-badge--$statustone"]);
+        echo html_writer::end_div();
+        echo html_writer::tag('p',
+            'CM: ' . html_writer::tag('span', $r->cm, ['class' => 'tnum']) . '%  ' .
+            'CMI: ' . html_writer::tag('span', $r->cmi, ['class' => 'tnum']) . '  ' .
+            'GI: ' . html_writer::tag('span', $r->gi, ['class' => 'tnum']),
+            ['style' => 'color:var(--al-ink-500); font-size:0.9em;']);
 
         echo html_writer::tag('p', s($feedback['summary'] ?? ''), ['style' => 'margin-top:8px;']);
 
@@ -153,14 +250,16 @@ if ($tab === 'feedback') {
 
             echo html_writer::start_div('', ['style' => 'margin-top:12px; padding-top:12px; border-top:1px solid #eee;']);
             echo html_writer::tag('strong', 'Quiz grade: ') .
-                ($currentgrade !== null ? number_format($currentgrade, 2) : 'Not graded') .
-                ' / ' . number_format($gc->gradeitem->grademax, 2) .
+                html_writer::tag('span',
+                    ($currentgrade !== null ? number_format($currentgrade, 2) : 'Not graded') .
+                    ' / ' . number_format($gc->gradeitem->grademax, 2),
+                    ['class' => 'tnum']) .
                 ($overridden ? html_writer::tag('span', ' Overridden',
                     ['style' => 'color:var(--al-red-ink); font-size:0.85em; font-weight:600;']) : '');
 
             echo html_writer::start_tag('form', [
                 'method' => 'post', 'action' => $PAGE->url,
-                'style' => 'margin-top:8px; display:flex; gap:8px; align-items:center;',
+                'style' => 'margin-top:8px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;',
                 'onsubmit' => "return confirm('Override this student\\'s quiz grade? This directly changes their gradebook grade.');",
             ]);
             echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
@@ -199,7 +298,12 @@ if ($tab === 'feedback') {
     }
 
     if (empty($rows)) {
-        echo html_writer::div('No AI feedback generated yet.', 'al-card', ['style' => 'color:var(--al-ink-500);']);
+        echo html_writer::div(
+            html_writer::div('<i class="fa fa-comment-dots" aria-hidden="true"></i>', 'al-empty__icon') .
+            html_writer::div('No AI feedback yet', 'al-empty__title') .
+            html_writer::div('Feedback appears here once a student submits a quiz.', 'al-empty__sub'),
+            'al-card al-empty'
+        );
     }
 
 } else {
@@ -223,24 +327,29 @@ if ($tab === 'feedback') {
 
         echo html_writer::start_div("al-card al-card--flag-$statustone");
 
-        echo html_writer::tag('div',
-            html_writer::tag('strong', $displayname) .
-            html_writer::tag('span', $statuslabel, ['class' => "al-badge al-badge--$statustone", 'style' => 'float:right;'])
-        );
+        echo html_writer::start_div('', ['style' => 'display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; gap:8px;']);
+        echo html_writer::tag('strong', $displayname);
+        echo html_writer::tag('span', $statuslabel, ['class' => "al-badge al-badge--$statustone"]);
+        echo html_writer::end_div();
 
         echo html_writer::tag('p', s($narrative['overview']), ['style' => 'margin-top:8px;']);
 
-        echo html_writer::start_tag('table', ['class' => 'generaltable', 'style' => 'width:100%; margin-top:8px;']);
+        echo html_writer::start_div('al-table-wrap', ['style' => 'margin-top:8px;']);
+        echo html_writer::start_tag('table', ['class' => 'generaltable', 'style' => 'width:100%;']);
         echo html_writer::tag('tr', html_writer::tag('th', 'Competency') . html_writer::tag('th', 'CM') . html_writer::tag('th', 'Mastery') . html_writer::tag('th', 'Pathway'));
         foreach ($track['competencies'] as $c) {
             echo html_writer::tag('tr',
                 html_writer::tag('td', s($c['competency_name'])) .
-                html_writer::tag('td', ($c['cm'] ?? 'N/A') . '%') .
+                html_writer::tag('td',
+                    html_writer::tag('span', $c['cm'] ?? 'N/A', ['class' => 'tnum']) . '%' .
+                    html_writer::div(local_acculearnfeedback_progress_bar($c['cm'] ?? null, $c['mastery']), '', ['style' => 'min-width:90px;'])
+                ) .
                 html_writer::tag('td', s($c['mastery'])) .
-                html_writer::tag('td', s($c['lp_label']))
+                html_writer::tag('td', local_acculearnfeedback_lp_badge($c['lp'] ?? null, $c['lp_label']))
             );
         }
         echo html_writer::end_tag('table');
+        echo html_writer::end_div();
 
         if ($r->teacher_note) {
             echo html_writer::div('Teacher note: ' . s($r->teacher_note), '',
@@ -263,7 +372,12 @@ if ($tab === 'feedback') {
     }
 
     if (empty($rows)) {
-        echo html_writer::div('No learning tracks generated yet.', 'al-card', ['style' => 'color:var(--al-ink-500);']);
+        echo html_writer::div(
+            html_writer::div('<i class="fa fa-route" aria-hidden="true"></i>', 'al-empty__icon') .
+            html_writer::div('No learning tracks yet', 'al-empty__title') .
+            html_writer::div('Tracks appear here after pre-test entry or a student\'s first quiz.', 'al-empty__sub'),
+            'al-card al-empty'
+        );
     }
 }
 

@@ -1,7 +1,7 @@
 <?php
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2026070801;
+$plugin->version   = 2026072906;
 $plugin->requires  = 2022041900;
 $plugin->component = 'quizaccess_acculearn';
 $plugin->maturity  = MATURITY_STABLE;

@@ -1,14 +1,29 @@
+/*
+ * Native Moodle/Boost chrome (buttons, links, navbar, login page) is
+ * re-themed through Boost's own supported mechanism instead of here:
+ * theme_boost/brandcolor + theme_boost/scsspre ($success) + theme_boost/scss
+ * (raw CSS, compiled as the LAST rules in Boost's single stylesheet, so it
+ * reliably wins the cascade - confirmed against the actual compiled output).
+ * See PROJECT_HANDOFF.md for what's set. This file only carries the al-*
+ * design-system classes used by our own custom pages.
+ */
+
+/* --al-green-700 and --al-amber-ink are darkened past their "textbook" brand
+   shade on purpose: at badge/label size (11.5px) the original tones sat at
+   ~3.6:1 and ~3.8:1 against their pastel badge backgrounds, below WCAG AA's
+   4.5:1 for normal text. Verified via relative-luminance contrast math, not
+   eyeballed. */
 :root {
   --al-blue: #24598a;
   --al-blue-dark: #1d4870;
   --al-blue-light: #2f6fa6;
   --al-blue-50: #eaf1f8;
   --al-green: #72b579;
-  --al-green-700: #4f8f57;
+  --al-green-700: #437949;
   --al-green-50: #eef7ef;
   --al-amber: #d9a441;
   --al-amber-50: #fdf6e8;
-  --al-amber-ink: #a4751f;
+  --al-amber-ink: #8b631a;
   --al-red: #c97064;
   --al-red-50: #fbeeec;
   --al-red-ink: #a04a40;
@@ -24,7 +39,22 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
-.al-page { max-width: 900px; margin: 0 auto; }
+/* One shared focus treatment for every interactive al-* element.
+   :focus-visible (not :focus) so mouse clicks don't flash rings, but
+   keyboard users always get a clear brand-colored indicator. */
+.al-btn:focus-visible,
+.al-toolbar__link:focus-visible,
+.al-radio-pills label:focus-within,
+.qbehaviour_confidence_box label:focus-within {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(36, 89, 138, .28);
+}
+
+.al-page { max-width: 900px; margin: 0 auto; padding: 0 4px; }
+
+/* Stat rows: wraps on narrow screens instead of crushing the boxes.
+   min-width on .al-stat (below) decides when a box drops to a new row. */
+.al-stat-row { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
 
 .al-card {
   background: #fff;
@@ -70,8 +100,16 @@ body {
 .al-badge--neutral     { background: var(--al-ink-100); color: var(--al-ink-700); }
 .al-badge--approved    { background: var(--al-green-50); color: var(--al-green-700); }
 .al-badge--flagged     { background: var(--al-red-50); color: var(--al-red-ink); }
-.al-badge--pending     { background: var(--al-ink-100); color: var(--al-ink-500); }
+.al-badge--pending     { background: var(--al-ink-100); color: #656c79; } /* al-ink-500 falls to 4.4:1 on ink-100, below AA */
 .al-badge--pill { background: var(--al-blue-50); color: var(--al-blue); border: 1px solid var(--al-blue-50); }
+.al-badge--lp1 { background: var(--al-red-50); color: var(--al-red-ink); }
+.al-badge--lp2 { background: var(--al-amber-50); color: var(--al-amber-ink); }
+.al-badge--lp3 { background: var(--al-blue-50); color: var(--al-blue); }
+.al-badge--lp4 { background: var(--al-green-50); color: var(--al-green-700); }
+
+.al-badge__dot { width: 6px; height: 6px; border-radius: 999px; display: inline-block; }
+
+.tnum { font-variant-numeric: tabular-nums; }
 
 .al-btn {
   display: inline-flex;
@@ -84,13 +122,15 @@ body {
   border: 1px solid transparent;
   cursor: pointer;
   text-decoration: none;
-  transition: background .15s ease, border-color .15s ease, color .15s ease;
+  transition: background .15s ease, border-color .15s ease, color .15s ease,
+              box-shadow .15s ease, transform .1s ease;
 }
 .al-btn:hover { text-decoration: none; }
+.al-btn:active { transform: translateY(1px); }
 .al-btn-sm { padding: 6px 12px; font-size: 13px; border-radius: 8px; }
 
-.al-btn-primary { background: var(--al-blue); color: #fff; }
-.al-btn-primary:hover { background: var(--al-blue-dark); color: #fff; }
+.al-btn-primary { background: var(--al-blue); color: #fff; box-shadow: 0 1px 2px rgba(16, 24, 40, .1); }
+.al-btn-primary:hover { background: var(--al-blue-dark); color: #fff; box-shadow: 0 3px 8px rgba(29, 72, 112, .3); }
 
 .al-btn-outline { background: #fff; color: var(--al-blue); border-color: var(--al-blue); }
 .al-btn-outline:hover { background: var(--al-blue-50); color: var(--al-blue); }
@@ -107,8 +147,15 @@ body {
 .al-btn-warning { background: var(--al-amber); color: #fff; }
 .al-btn-warning:hover { background: var(--al-amber-ink); color: #fff; }
 
+.al-btn-ghost { background: transparent; color: var(--al-ink-700); border-color: transparent; }
+.al-btn-ghost:hover { background: var(--al-ink-100); color: var(--al-ink-700); }
+
+.al-btn-subtle { background: var(--al-blue-50); color: var(--al-blue); border-color: transparent; }
+.al-btn-subtle:hover { filter: brightness(0.97); }
+
 .al-stat {
   flex: 1;
+  min-width: 140px;
   background: var(--al-ink-50);
   border: 1px solid var(--al-ink-200);
   border-radius: 12px;
@@ -169,3 +216,160 @@ body {
   transition: background .15s;
 }
 .al-toolbar__link:hover { background: rgba(255, 255, 255, .12); color: #fff; text-decoration: none; }
+
+/* On phones the labeled links wrap the fixed toolbar onto multiple rows,
+   which then covers page content (the spacer div behind it is a fixed
+   56px). Collapsing to icon-only keeps it a single row at any width;
+   the larger tap padding keeps each icon a comfortable touch target. */
+@media (max-width: 640px) {
+  .al-toolbar { padding: 6px 10px; }
+  .al-toolbar__brand { margin-right: 4px; }
+  .al-toolbar__link span { display: none; }
+  .al-toolbar__link { padding: 12px 14px; }
+  .al-toolbar__link i { font-size: 1.15em !important; }
+}
+
+.al-table-wrap { overflow-x: auto; border: 1px solid var(--al-ink-200); border-radius: 12px; }
+.al-table-wrap table.generaltable { margin: 0; border: none; }
+.al-table-wrap table.generaltable thead th {
+  text-transform: uppercase;
+  font-size: 11.5px;
+  letter-spacing: .04em;
+  font-weight: 600;
+  color: var(--al-ink-500);
+  background: var(--al-ink-50);
+  border-bottom: 1px solid var(--al-ink-200);
+}
+.al-table-wrap table.generaltable tbody tr { transition: background .12s ease; }
+.al-table-wrap table.generaltable tbody tr:nth-child(even) { background: var(--al-ink-50); }
+.al-table-wrap table.generaltable tbody tr:hover { background: var(--al-blue-50); }
+.al-table-wrap table.generaltable td { vertical-align: middle; padding-top: 10px; padding-bottom: 10px; }
+
+.al-empty { text-align: center; padding: 48px 24px; }
+.al-empty__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: var(--al-ink-100);
+  color: var(--al-ink-500);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+  font-size: 20px;
+}
+.al-empty__title { font-weight: 600; color: var(--al-ink-700); }
+.al-empty__sub { font-size: 13px; color: var(--al-ink-500); margin-top: 4px; }
+
+/* Mastery progress bar - the mastery-percent number alone (e.g. "40%") reads
+   as a bare stat with no visual weight; a filled track gives it the same
+   at-a-glance "how far along" read a progress bar gives anywhere else.
+   Width is set inline per-instance (style="width:NN%"); the tone modifier
+   (--mastered/--developing/--needs/--neutral) picks the fill color, mirroring
+   the same four tones already used by al-badge and al-card--flag-*. */
+.al-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--al-ink-100);
+  overflow: hidden;
+  margin-top: 6px;
+}
+.al-progress__bar {
+  height: 100%;
+  border-radius: 999px;
+  transition: width .4s ease;
+}
+.al-progress__bar--mastered   { background: var(--al-green); }
+.al-progress__bar--developing { background: var(--al-amber); }
+.al-progress__bar--needs      { background: var(--al-red); }
+.al-progress__bar--neutral    { background: var(--al-ink-200); }
+
+/* Icon-prefixed section headings (h4/h5 inside al-card content) - a small
+   glyph gives cards something to scan by shape/color before reading text,
+   especially useful once a page has several stacked sections. */
+.al-page h4 i.fa, .al-page h5 i.fa { color: var(--al-blue); font-size: .85em; margin-right: 7px; opacity: .85; }
+
+/* Pill-style radio groups (pretest entry correct/confidence pickers) */
+.al-radio-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.al-radio-pills label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--al-ink-200);
+  background: #fff;
+  font-size: 12.5px;
+  color: var(--al-ink-700);
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease;
+}
+.al-radio-pills label:hover { border-color: var(--al-blue); }
+.al-radio-pills input[type=radio] { accent-color: var(--al-blue); margin: 0; }
+
+/* Confidence selector shown during a live quiz attempt (qbehaviour_confidence) */
+.qbehaviour_confidence_box {
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: var(--al-blue-50);
+  border: 1px solid var(--al-ink-200);
+  border-radius: 12px;
+}
+.qbehaviour_confidence_label {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--al-ink-700);
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  margin: 0 0 10px;
+}
+.qbehaviour_confidence_radio { accent-color: var(--al-blue); margin-right: 6px; vertical-align: middle; }
+.qbehaviour_confidence_option {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px 6px 4px;
+  margin: 0 8px 8px 0;
+  border-radius: 999px;
+  border: 1px solid var(--al-ink-200);
+  background: #fff;
+  color: var(--al-ink-700);
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.qbehaviour_confidence_radio:checked + .qbehaviour_confidence_option {
+  background: #fff;
+  border-color: var(--al-blue);
+  color: var(--al-blue);
+  font-weight: 600;
+}
+
+/* Subtle entrance for the main content cards - one short fade/rise on
+   load, not a looping animation. Gives pages a sense of assembly instead
+   of appearing as a flat wall of boxes. */
+@keyframes al-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+.al-page .al-card { animation: al-rise .3s ease both; }
+.al-page .al-card:nth-child(2) { animation-delay: .04s; }
+.al-page .al-card:nth-child(3) { animation-delay: .08s; }
+.al-page .al-card:nth-child(4) { animation-delay: .12s; }
+
+/* Inline spinner for anything that takes a moment (e.g. track generation). */
+.al-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(36, 89, 138, .25);
+  border-top-color: var(--al-blue);
+  border-radius: 999px;
+  animation: spin .7s linear infinite;
+  vertical-align: -2px;
+}
+
+/* Anyone who asked their OS to reduce motion gets none of the above. */
+@media (prefers-reduced-motion: reduce) {
+  .al-page .al-card { animation: none; }
+  .al-btn, .al-btn:active, .coursebox { transition: none; transform: none; }
+}

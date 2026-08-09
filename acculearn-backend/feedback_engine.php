@@ -2,6 +2,7 @@
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/moodle_client.php';
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/rate_limiter.php';
 
 class FeedbackEngine {
 
@@ -175,6 +176,11 @@ private function getAnswersForQuestion($questionid) {
             ];
         }
 
+        $limiter = new RateLimiter();
+        if (!$limiter->allow('openai', OPENAI_RATE_LIMIT_PER_HOUR, 3600)) {
+            throw new Exception("OpenAI rate limit reached (" . OPENAI_RATE_LIMIT_PER_HOUR . "/hour) - feedback generation deferred.");
+        }
+
         $systemPrompt = "You are AccuLearn's formative feedback assistant for FABM 1 bookkeeping. "
             . "You do NOT grade, do NOT change scores, and do NOT introduce new topics. "
             . "You only explain errors already identified by the system and provide corrective guidance "
@@ -224,9 +230,24 @@ private function getAnswersForQuestion($questionid) {
         ]);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        // Without these, curl's default timeout is UNLIMITED. This call runs
+        // inside a Moodle ad-hoc task, so a single hung OpenAI connection
+        // would block the cron worker indefinitely and stall the whole task
+        // queue - meaning no student gets feedback until someone notices and
+        // restarts cron. Bounded waits turn that into one failed task that
+        // Moodle simply retries.
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
         $response = curl_exec($ch);
+        $curlerror = curl_error($ch);
         $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
+
+        if ($response === false) {
+            throw new Exception("OpenAI request failed (transport): $curlerror");
+        }
 
         if ($httpcode !== 200) {
             throw new Exception("OpenAI API error ($httpcode): $response");

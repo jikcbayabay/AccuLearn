@@ -14,11 +14,39 @@ $PAGE->set_pagelayout('report');
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('confidencereport', 'report_confidence'));
 
-$exporturl = new moodle_url('/report/confidence/export.php');
+$canreveal = has_capability('local/acculearnfeedback:revealstudentnames', $context);
+
+echo html_writer::start_div('al-page');
+echo html_writer::start_div('al-card');
+echo html_writer::tag('p',
+    'Export every recorded confidence rating alongside answer correctness, for every attempt on this site.',
+    ['style' => 'color:var(--al-ink-500); margin-top:0;']
+);
+
+echo html_writer::tag('p',
+    'Students are exported under their stable AccuLearn pseudonym (the same one shown in AI Output Review), '
+    . 'not their real names.',
+    ['style' => 'color:var(--al-ink-500);']
+);
+
+$exporturl = new moodle_url('/report/confidence/export.php', ['sesskey' => sesskey()]);
 echo html_writer::link($exporturl, get_string('exportcsv', 'report_confidence'), [
-    'style' => 'display:inline-flex; align-items:center; gap:6px; font-weight:500; '
-        . 'border-radius:10px; padding:8px 16px; font-size:14px; text-decoration:none; '
-        . 'background:#24598a; color:#fff;',
+    'class' => 'al-btn al-btn-primary',
 ]);
+
+// Identified export is a separate, deliberate action gated on the same
+// capability as the reveal toggle in AI Output Review - so a plain teacher
+// cannot obtain a name-to-answers mapping this way either.
+if ($canreveal) {
+    $identifiedurl = new moodle_url('/report/confidence/export.php',
+        ['sesskey' => sesskey(), 'reveal' => 1]);
+    echo html_writer::link($identifiedurl, 'Export with real names', [
+        'class' => 'al-btn al-btn-secondary',
+        'style' => 'margin-left:8px;',
+    ]);
+}
+
+echo html_writer::end_div();
+echo html_writer::end_div();
 
 echo $OUTPUT->footer();

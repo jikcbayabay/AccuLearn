@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="local/acculearnfeedback/db" VERSION="20260729" COMMENT="local_acculearnfeedback custom tables">
+  <TABLES>
+
+    <!--
+      IMPORTANT SCHEMA NOTE (read before editing):
+
+      acculearn_competencies, acculearn_feedback, acculearn_learning_tracks,
+      acculearn_pretest_responses and acculearn_question_competency were
+      created directly on the production database with raw SQL, WITHOUT
+      Moodle's standard table prefix (mdl_). Every other table on this site,
+      including this one's own new tables below, uses the mdl_ prefix as
+      normal. All existing PHP in this plugin (and in acculearn-backend,
+      which uses a separate raw PDO connection) queries them by their
+      literal unprefixed name.
+
+      This file documents that pre-existing schema so a FRESH install of
+      this plugin elsewhere creates it correctly (with the standard prefix,
+      the Moodle way) - but on THIS site, install.xml is not re-run for an
+      already-installed plugin. The live, already-installed tables remain
+      unprefixed until a dedicated migration (rename the physical tables,
+      update every literal-SQL query in both this plugin and
+      acculearn-backend to use the new prefixed names) is done as its own,
+      separately-tested change. db/upgrade.php deliberately does NOT try to
+      create these five tables - only the two new ones below, which were
+      never manually created and so start out properly Moodle-managed.
+    -->
+
+    <TABLE NAME="acculearn_competencies" COMMENT="A single FABM 1 bookkeeping competency in the AccuLearn mastery sequence.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="code" TYPE="char" LENGTH="50" NOTNULL="true"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true"/>
+        <FIELD NAME="sequence" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="prerequisite_id" TYPE="int" LENGTH="10" NOTNULL="false"/>
+        <FIELD NAME="gating_enabled" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1"/>
+        <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="code" TYPE="unique" FIELDS="code"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="prerequisite_id" UNIQUE="false" FIELDS="prerequisite_id"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="acculearn_feedback" COMMENT="AI-generated formative feedback for one quiz attempt.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="attemptid" TYPE="int" LENGTH="20" NOTNULL="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="20" NOTNULL="true"/>
+        <FIELD NAME="quizname" TYPE="char" LENGTH="255" NOTNULL="false"/>
+        <FIELD NAME="cm" TYPE="number" LENGTH="5" DECIMALS="1" NOTNULL="false"/>
+        <FIELD NAME="cmi" TYPE="number" LENGTH="5" DECIMALS="3" NOTNULL="false"/>
+        <FIELD NAME="gi" TYPE="number" LENGTH="5" DECIMALS="3" NOTNULL="false"/>
+        <FIELD NAME="cbm_total" TYPE="int" LENGTH="10" NOTNULL="false"/>
+        <FIELD NAME="feedback_json" TYPE="text" NOTNULL="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="20" NOTNULL="true"/>
+        <FIELD NAME="reviewed" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="reviewed_by" TYPE="int" LENGTH="20" NOTNULL="false"/>
+        <FIELD NAME="reviewed_at" TYPE="int" LENGTH="20" NOTNULL="false"/>
+        <FIELD NAME="teacher_note" TYPE="text" NOTNULL="false"/>
+        <FIELD NAME="flagged" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="attemptid" TYPE="unique" FIELDS="attemptid"/>
+      </KEYS>
+    </TABLE>
+
+    <TABLE NAME="acculearn_learning_tracks" COMMENT="A student's current personalized learning track (one row per student).">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="20" NOTNULL="true"/>
+        <FIELD NAME="track_json" TYPE="text" NOTNULL="true"/>
+        <FIELD NAME="generated_at" TYPE="int" LENGTH="20" NOTNULL="true"/>
+        <FIELD NAME="reviewed" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="reviewed_by" TYPE="int" LENGTH="20" NOTNULL="false"/>
+        <FIELD NAME="reviewed_at" TYPE="int" LENGTH="20" NOTNULL="false"/>
+        <FIELD NAME="teacher_note" TYPE="text" NOTNULL="false"/>
+        <FIELD NAME="flagged" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="userid" TYPE="unique" FIELDS="userid"/>
+      </KEYS>
+    </TABLE>
+
+    <TABLE NAME="acculearn_pretest_responses" COMMENT="One manually-entered paper pre-test response for one student/question.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="20" NOTNULL="true"/>
+        <FIELD NAME="questionid" TYPE="int" LENGTH="20" NOTNULL="true"/>
+        <FIELD NAME="competency_id" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="confidence" TYPE="int" LENGTH="4" NOTNULL="true"/>
+        <FIELD NAME="is_correct" TYPE="int" LENGTH="4" NOTNULL="true"/>
+        <FIELD NAME="entered_at" TYPE="int" LENGTH="20" NOTNULL="true"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="userid" UNIQUE="false" FIELDS="userid"/>
+        <INDEX NAME="userid_questionid" UNIQUE="true" FIELDS="userid, questionid"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="acculearn_question_competency" COMMENT="Maps one multiple-choice question to the competency it belongs to.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="questionid" TYPE="int" LENGTH="20" NOTNULL="true"/>
+        <FIELD NAME="competency_id" TYPE="int" LENGTH="10" NOTNULL="true"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="questionid" TYPE="unique" FIELDS="questionid"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="competency_id" UNIQUE="false" FIELDS="competency_id"/>
+      </INDEXES>
+    </TABLE>
+
+    <!-- Everything below this line is new with this change and IS created
+         via db/upgrade.php on the live site, using the standard mdl_ prefix. -->
+
+    <TABLE NAME="acculearn_review_log" COMMENT="Append-only history of teacher approve/flag/grade-override actions on AI output. Never updated, only inserted - the reviewed/reviewed_by/teacher_note/flagged columns on acculearn_feedback and acculearn_learning_tracks only ever hold the latest state.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="entitytype" TYPE="char" LENGTH="20" NOTNULL="true" COMMENT="'feedback' or 'track'"/>
+        <FIELD NAME="entityid" TYPE="int" LENGTH="10" NOTNULL="true" COMMENT="acculearn_feedback.id or acculearn_learning_tracks.id"/>
+        <FIELD NAME="target_userid" TYPE="int" LENGTH="10" NOTNULL="true" COMMENT="the student the reviewed item is about"/>
+        <FIELD NAME="reviewer_userid" TYPE="int" LENGTH="10" NOTNULL="true" COMMENT="the teacher who performed the action"/>
+        <FIELD NAME="action" TYPE="char" LENGTH="20" NOTNULL="true" COMMENT="'approve', 'flag', or 'gradeoverride'"/>
+        <FIELD NAME="note" TYPE="text" NOTNULL="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="target_userid" UNIQUE="false" FIELDS="target_userid"/>
+        <INDEX NAME="reviewer_userid" UNIQUE="false" FIELDS="reviewer_userid"/>
+        <INDEX NAME="entitytype_entityid" UNIQUE="false" FIELDS="entitytype, entityid"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="acculearn_usage_log" COMMENT="System usage/engagement events for the research instrument described in the thesis's Section 3.5.3/3.8.7 (frequency of use, module access, quiz submissions, feedback/track generation and views).">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="action" TYPE="char" LENGTH="50" NOTNULL="true" COMMENT="e.g. view_track, view_feedback, quiz_attempt_submitted, feedback_generated, track_generated"/>
+        <FIELD NAME="target_type" TYPE="char" LENGTH="30" NOTNULL="false" COMMENT="e.g. attempt, competency, scorm, quiz, session"/>
+        <FIELD NAME="target_id" TYPE="int" LENGTH="10" NOTNULL="false" COMMENT="cmid for module views, attemptid for quiz events, competency id otherwise"/>
+        <FIELD NAME="detail" TYPE="text" NOTNULL="false" COMMENT="Human-readable description of what was viewed/done, captured at event time so the log stays meaningful if the activity is later renamed or deleted."/>
+        <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="false" COMMENT="Course the event happened in; each competency is its own course, so this gives per-competency engagement."/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="userid" UNIQUE="false" FIELDS="userid"/>
+        <INDEX NAME="timecreated" UNIQUE="false" FIELDS="timecreated"/>
+        <INDEX NAME="action" UNIQUE="false" FIELDS="action"/>
+        <INDEX NAME="userid_timecreated" UNIQUE="false" FIELDS="userid, timecreated"/>
+      </INDEXES>
+    </TABLE>
+
+  </TABLES>
+</XMLDB>
