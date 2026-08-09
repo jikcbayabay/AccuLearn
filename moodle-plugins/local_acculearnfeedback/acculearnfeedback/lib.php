@@ -159,8 +159,165 @@ function local_acculearnfeedback_pseudonym($userid) {
  * @return stdClass|null {feedback, attempt, quiz, courseid, grade_item, grade_grade}
  *         or null if any link in the chain can't be resolved.
  */
+/**
+ * Shared per-request store behind grade_context() and its bulk preloader.
+ *
+ * Returned BY REFERENCE so both functions mutate the same array; a plain
+ * static inside grade_context() could not be filled from the outside.
+ *
+ * @return array keyed by acculearn_feedback.id
+ */
+function &local_acculearnfeedback_grade_context_registry() {
+    static $registry = [];
+    return $registry;
+}
+
+/**
+ * Resolves the grade context for MANY feedback rows in a fixed number of
+ * queries, instead of the per-row lookups grade_context() would otherwise do.
+ *
+ * teacher_review.php renders a page of feedback cards and called
+ * grade_context() once per card. Each call ran its own feedback + attempt +
+ * quiz lookup plus a grade_item::fetch() and a grade_grade construction, so a
+ * page of rows cost roughly five queries per row and grew linearly with the
+ * queue - the classic N+1. This resolves the whole page up front: one query
+ * for the feedback/attempt/quiz join, one for the grade items, and Moodle's
+ * own grade_grade fetch per user/item pair (which needs the item anyway).
+ *
+ * @param int[] $feedbackids acculearn_feedback ids about to be rendered
+ */
+function local_acculearnfeedback_preload_grade_contexts(array $feedbackids) {
+    global $DB, $CFG;
+
+    $feedbackids = array_values(array_unique(array_filter($feedbackids)));
+    if (!$feedbackids) {
+        return;
+    }
+    require_once($CFG->libdir . '/gradelib.php');
+
+    $registry =& local_acculearnfeedback_grade_context_registry();
+    $todo = array_diff($feedbackids, array_keys($registry));
+    if (!$todo) {
+        return;
+    }
+
+    list($insql, $params) = $DB->get_in_or_equal(array_values($todo));
+    // acculearn_feedback is one of the unprefixed legacy tables, so it is
+    // named directly while the core tables keep their {braces}.
+    $rows = $DB->get_records_sql("
+        SELECT f.id AS feedbackid, f.*, qa.id AS attemptid_real, qa.quiz, qa.userid,
+               q.course
+          FROM acculearn_feedback f
+          JOIN {quiz_attempts} qa ON qa.id = f.attemptid
+          JOIN {quiz} q ON q.id = qa.quiz
+         WHERE f.id $insql", $params);
+
+    // One grade_item lookup per distinct quiz, not per row.
+    $items = [];
+    foreach ($rows as $r) {
+        $items[$r->quiz] = $r->course;
+    }
+    $gradeitems = [];
+    foreach ($items as $quizid => $courseid) {
+        $gradeitems[$quizid] = grade_item::fetch([
+            'itemtype' => 'mod', 'itemmodule' => 'quiz',
+            'iteminstance' => $quizid, 'itemnumber' => 0, 'courseid' => $courseid,
+        ]);
+    }
+
+    foreach ($rows as $r) {
+        $gradeitem = $gradeitems[$r->quiz] ?? null;
+        if (!$gradeitem) {
+            $registry[$r->feedbackid] = null;
+            continue;
+        }
+        $gradegrade = new grade_grade(['userid' => $r->userid, 'itemid' => $gradeitem->id], true);
+        $gradegrade->grade_item =& $gradeitem;
+
+        $attempt = new stdClass();
+        $attempt->id = $r->attemptid;
+        $attempt->quiz = $r->quiz;
+        $attempt->userid = $r->userid;
+
+        $quiz = new stdClass();
+        $quiz->id = $r->quiz;
+        $quiz->course = $r->course;
+
+        $ctx = new stdClass();
+        $ctx->feedback = $r;
+        $ctx->attempt = $attempt;
+        $ctx->quiz = $quiz;
+        $ctx->courseid = $r->course;
+        $ctx->gradeitem = $gradeitem;
+        $ctx->gradegrade = $gradegrade;
+        $registry[$r->feedbackid] = $ctx;
+    }
+
+    // Anything that did not resolve (deleted attempt/quiz) is cached as a miss
+    // so a later call does not re-run the same failing lookup.
+    foreach ($todo as $id) {
+        if (!array_key_exists($id, $registry)) {
+            $registry[$id] = null;
+        }
+    }
+}
+
+/**
+ * Strips a student's real name out of AI-generated prose.
+ *
+ * The teacher review screen anonymises the student LABEL (Student-A4E0), but
+ * the AI writes in the second person and opens with the student's first name
+ * ("Hi Kristine!", "Great job, John!"). Printing that text verbatim under a
+ * pseudonym de-anonymised the row in its own first sentence, which defeats the
+ * whole point of the revealstudentnames capability.
+ *
+ * Longest match first, so "John Paul Tejada" is replaced whole rather than
+ * leaving "Paul Tejada" behind after "John" is substituted. Parts shorter than
+ * three characters are skipped: initials and short particles ("Jo", "de")
+ * collide with ordinary words and would corrupt the prose.
+ *
+ * @param string|null $text the AI-generated text
+ * @param stdClass $user object carrying firstname/lastname
+ * @param string $pseudonym replacement label
+ * @return string
+ */
+function local_acculearnfeedback_deidentify($text, $user, $pseudonym) {
+    if ($text === null || trim((string)$text) === '') {
+        return (string)$text;
+    }
+
+    $candidates = [];
+    $full = trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? ''));
+    if ($full !== '') {
+        $candidates[] = $full;
+    }
+    // Each individual word too: the AI usually uses the first name alone, and
+    // multi-word given names ("John Paul") appear split as often as whole.
+    foreach (preg_split('/\s+/', $full, -1, PREG_SPLIT_NO_EMPTY) as $part) {
+        $candidates[] = $part;
+    }
+
+    $candidates = array_unique(array_filter($candidates, function($n) {
+        return core_text::strlen($n) >= 3;
+    }));
+    usort($candidates, function($a, $b) {
+        return core_text::strlen($b) - core_text::strlen($a);
+    });
+
+    foreach ($candidates as $name) {
+        $text = preg_replace('/\b' . preg_quote($name, '/') . '\b/iu', $pseudonym, (string)$text);
+    }
+    return (string)$text;
+}
+
 function local_acculearnfeedback_grade_context($feedbackid) {
     global $DB, $CFG;
+
+    // Served from the bulk preloader when the caller is rendering a list.
+    $registry =& local_acculearnfeedback_grade_context_registry();
+    if (array_key_exists($feedbackid, $registry)) {
+        return $registry[$feedbackid];
+    }
 
     $feedback = $DB->get_record_sql("SELECT * FROM acculearn_feedback WHERE id = ?", [$feedbackid]);
     if (!$feedback) {
@@ -200,6 +357,8 @@ function local_acculearnfeedback_grade_context($feedbackid) {
     $ctx->courseid = $quiz->course;
     $ctx->gradeitem = $gradeitem;
     $ctx->gradegrade = $gradegrade;
+
+    $registry[$feedbackid] = $ctx;
     return $ctx;
 }
 
@@ -485,10 +644,16 @@ function local_acculearnfeedback_before_standard_html_head() {
     // text-sm ...) appears in any of this plugin's PHP. The current pages are
     // built entirely from the al-* classes in styles.css plus inline styles.
     // Removing the <link> costs nothing visually and saves the request.
+    // The three fonts.googleapis.com / fonts.gstatic.com <link>s that used to
+    // be here are gone: Inter is now self-hosted via @font-face in styles.css.
+    // They were a render-blocking third-party dependency on every page, which
+    // stalls text on a school network that blocks or throttles Google and sent
+    // every page view to a third party. Preloading the font here (rather than
+    // waiting for the CSS to be parsed and the @font-face matched) keeps the
+    // swap-in as early as it was with the external stylesheet.
+    $fonturl = new moodle_url('/local/acculearnfeedback/fonts/inter-var.woff2');
     return '
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <link rel="preload" as="font" type="font/woff2" crossorigin href="' . $fonturl->out() . '">
         <link rel="stylesheet" href="' . $cssurl->out() . '">
     ';
 }

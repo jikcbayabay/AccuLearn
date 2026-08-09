@@ -109,6 +109,14 @@ echo $OUTPUT->heading('AI Output Review');
 
 $tab = optional_param('tab', 'feedback', PARAM_ALPHA);
 
+// Both queues were hard-capped at "LIMIT 50" with no way to reach anything
+// older, so once a class had generated more than 50 items the rest of the
+// queue was simply unreachable - including anything still pending review.
+$page = optional_param('page', 0, PARAM_INT);
+$perpage = 20;
+$pagingbaseurl = new moodle_url('/local/acculearnfeedback/teacher_review.php',
+    ['tab' => $tab] + ($revealnames ? ['reveal' => 1] : []));
+
 // ---- Students stuck on a quiz ----
 //
 // Now that mastery requires PASSING every quiz, and each quiz allows only
@@ -151,13 +159,22 @@ if ($stuck) {
         html_writer::tag('th', 'Student') . html_writer::tag('th', 'Competency course') .
         html_writer::tag('th', 'Quiz') . html_writer::tag('th', 'Attempts') .
         html_writer::tag('th', 'Best / needed') . html_writer::tag('th', ''));
+    // One query for every quiz in the table, instead of calling
+    // get_coursemodule_from_instance() once per row inside the loop.
+    $stuckquizids = array_unique(array_map(function($s) { return $s->quiz; }, $stuck));
+    list($qinsql, $qinparams) = $DB->get_in_or_equal($stuckquizids);
+    $cmids = $DB->get_records_sql_menu("
+        SELECT cm.instance, cm.id
+          FROM {course_modules} cm
+          JOIN {modules} m ON m.id = cm.module AND m.name = 'quiz'
+         WHERE cm.instance $qinsql", $qinparams);
+
     foreach ($stuck as $s) {
         $who = $revealnames
             ? s($s->firstname . ' ' . $s->lastname)
             : local_acculearnfeedback_pseudonym($s->userid);
-        $cm = get_coursemodule_from_instance('quiz', $s->quiz);
-        $overrideurl = $cm
-            ? new moodle_url('/mod/quiz/overrides.php', ['cmid' => $cm->id, 'mode' => 'user'])
+        $overrideurl = isset($cmids[$s->quiz])
+            ? new moodle_url('/mod/quiz/overrides.php', ['cmid' => $cmids[$s->quiz], 'mode' => 'user'])
             : null;
         echo html_writer::tag('tr',
             html_writer::tag('td', $who) .
@@ -201,13 +218,22 @@ if ($canreveal) {
 }
 
 if ($tab === 'feedback') {
+    // Unreviewed first: the queue exists to be worked through, and burying
+    // pending items under already-approved ones made that harder as it grew.
+    $total = $DB->count_records_sql(
+        "SELECT COUNT(*) FROM acculearn_feedback f JOIN {user} u ON u.id = f.userid");
     $rows = $DB->get_records_sql("
         SELECT f.*, u.firstname, u.lastname
         FROM acculearn_feedback f
         JOIN {user} u ON u.id = f.userid
-        ORDER BY f.timecreated DESC
-        LIMIT 50
-    ");
+        ORDER BY f.reviewed ASC, f.timecreated DESC
+    ", null, $page * $perpage, $perpage);
+
+    // Resolve every grade context for this page in a fixed number of queries
+    // rather than one lookup per card.
+    local_acculearnfeedback_preload_grade_contexts(array_keys($rows));
+
+    echo $OUTPUT->paging_bar($total, $page, $perpage, $pagingbaseurl);
 
     foreach ($rows as $r) {
         $feedback = json_decode($r->feedback_json, true);
@@ -230,12 +256,20 @@ if ($tab === 'feedback') {
             'GI: ' . html_writer::tag('span', $r->gi, ['class' => 'tnum']),
             ['style' => 'color:var(--al-ink-500); font-size:0.9em;']);
 
-        echo html_writer::tag('p', s($feedback['summary'] ?? ''), ['style' => 'margin-top:8px;']);
+        // The AI writes to the student by name, so the prose must be scrubbed
+        // too - anonymising only the heading left "Hi Kristine!" sitting under
+        // a "Student-A4E0" label.
+        $deid = function($text) use ($revealnames, $r, $displayname) {
+            return $revealnames ? (string)$text
+                : local_acculearnfeedback_deidentify($text, $r, $displayname);
+        };
+
+        echo html_writer::tag('p', s($deid($feedback['summary'] ?? '')), ['style' => 'margin-top:8px;']);
 
         if (!empty($feedback['misconceptions'])) {
             echo html_writer::tag('strong', 'Misconceptions:');
             echo html_writer::start_tag('ul');
-            foreach ($feedback['misconceptions'] as $m) echo html_writer::tag('li', s($m));
+            foreach ($feedback['misconceptions'] as $m) echo html_writer::tag('li', s($deid($m)));
             echo html_writer::end_tag('ul');
         }
 
@@ -301,6 +335,8 @@ if ($tab === 'feedback') {
         echo html_writer::end_div();
     }
 
+    echo $OUTPUT->paging_bar($total, $page, $perpage, $pagingbaseurl);
+
     if (empty($rows)) {
         echo html_writer::div(
             html_writer::div('<i class="fa fa-comment-dots" aria-hidden="true"></i>', 'al-empty__icon') .
@@ -311,13 +347,16 @@ if ($tab === 'feedback') {
     }
 
 } else {
+    $total = $DB->count_records_sql(
+        "SELECT COUNT(*) FROM acculearn_learning_tracks t JOIN {user} u ON u.id = t.userid");
     $rows = $DB->get_records_sql("
         SELECT t.*, u.firstname, u.lastname
         FROM acculearn_learning_tracks t
         JOIN {user} u ON u.id = t.userid
-        ORDER BY t.generated_at DESC
-        LIMIT 50
-    ");
+        ORDER BY t.reviewed ASC, t.generated_at DESC
+    ", null, $page * $perpage, $perpage);
+
+    echo $OUTPUT->paging_bar($total, $page, $perpage, $pagingbaseurl);
 
     foreach ($rows as $r) {
         // Same defensive decode as my_track.php: one malformed row must not
@@ -341,7 +380,9 @@ if ($tab === 'feedback') {
         echo html_writer::tag('span', $statuslabel, ['class' => "al-badge al-badge--$statustone"]);
         echo html_writer::end_div();
 
-        echo html_writer::tag('p', s($narrative['overview'] ?? ''), ['style' => 'margin-top:8px;']);
+        $overview = $revealnames ? ($narrative['overview'] ?? '')
+            : local_acculearnfeedback_deidentify($narrative['overview'] ?? '', $r, $displayname);
+        echo html_writer::tag('p', s($overview), ['style' => 'margin-top:8px;']);
 
         echo html_writer::start_div('al-table-wrap', ['style' => 'margin-top:8px;']);
         echo html_writer::start_tag('table', ['class' => 'generaltable', 'style' => 'width:100%;']);
@@ -385,6 +426,8 @@ if ($tab === 'feedback') {
 
         echo html_writer::end_div();
     }
+
+    echo $OUTPUT->paging_bar($total, $page, $perpage, $pagingbaseurl);
 
     if (empty($rows)) {
         echo html_writer::div(
