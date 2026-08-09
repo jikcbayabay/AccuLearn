@@ -42,13 +42,35 @@ $PAGE->set_url('/local/acculearnfeedback/view.php', ['attempt' => $attemptid]);
 $PAGE->set_cm($cm, $course);
 $PAGE->set_context($context);
 $PAGE->set_title(get_string('feedbacktitle', 'local_acculearnfeedback'));
-$PAGE->set_heading(get_string('feedbacktitle', 'local_acculearnfeedback'));
+
+// Boost renders $PAGE->set_heading() in the full-width page-header region,
+// which sits OUTSIDE the (narrower) content column. Putting the feedback
+// title there left it stranded off to the side of the content it belongs to,
+// while the activity header separately printed the quiz name at the top of
+// the column - two competing titles, neither of them where the reader looks.
+// Moodle's own convention for the page heading is the course name; the page's
+// real title belongs at the top of the content column, rendered below.
+$PAGE->set_heading($course->fullname);
+
+// Suppress the activity header so the quiz name is not printed a second time
+// immediately above our own title. Guarded because $PAGE->activityheader is
+// only populated once set_cm() has run.
+if (isset($PAGE->activityheader)) {
+    $PAGE->activityheader->disable();
+}
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('feedbacktitle', 'local_acculearnfeedback'));
 
 local_acculearnfeedback_log_usage($USER->id, 'view_feedback', 'attempt', $attemptid,
     'AI feedback for: ' . $quiz->name . ' (attempt ' . $attempt->attempt . ')', $course->id);
+
+// Rendered as the first thing inside the content column on both the
+// "still generating" and the populated branch, so the page always leads with
+// its own title rather than with the quiz name from the activity header.
+$pagetitle = html_writer::tag('h2',
+        get_string('feedbacktitle', 'local_acculearnfeedback'),
+        ['class' => 'al-page__title']) .
+    html_writer::tag('p', s($quiz->name), ['class' => 'al-page__subtitle']);
 
 $feedbackrow = $DB->get_record_sql(
     "SELECT * FROM acculearn_feedback WHERE attemptid = ?",
@@ -57,6 +79,7 @@ $feedbackrow = $DB->get_record_sql(
 
 if (!$feedbackrow) {
     echo html_writer::start_div('al-page', ['style' => 'max-width: 800px;']);
+    echo $pagetitle;
     echo html_writer::div(
         html_writer::div('<span class="al-spinner"></span>', 'al-empty__icon', ['style' => 'background:var(--al-blue-50); color:var(--al-blue);']) .
         html_writer::div('Feedback is still generating', 'al-empty__title') .
@@ -71,6 +94,7 @@ if (!$feedbackrow) {
 $feedback = json_decode($feedbackrow->feedback_json, true);
 
 echo html_writer::start_div('al-page', ['style' => 'max-width: 800px;']);
+echo $pagetitle;
 
 // Summary
 echo html_writer::tag('div',

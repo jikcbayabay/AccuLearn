@@ -52,6 +52,24 @@ body {
 
 .al-page { max-width: 900px; margin: 0 auto; padding: 0 4px; }
 
+/* Page title, rendered as the first element INSIDE the content column.
+   It used to be pushed through $PAGE->set_heading(), which Boost paints in
+   the full-width header region beside the column - visually detached from the
+   content it names. */
+.al-page__title {
+  margin: 0 0 4px;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--al-ink-900);
+}
+
+.al-page__subtitle {
+  margin: 0 0 20px;
+  font-size: 14px;
+  color: var(--al-ink-500);
+}
+
 /* Stat rows: wraps on narrow screens instead of crushing the boxes.
    min-width on .al-stat (below) decides when a box drops to a new row. */
 .al-stat-row { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
