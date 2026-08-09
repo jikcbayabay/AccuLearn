@@ -1,81 +1,112 @@
 /*
  * Confidence rating block, rendered under every question's answer options.
  *
- * The layout is deliberately grid/flex based rather than the previous
- * <br>-separated inline radios: with inline radios the label text sat on a
- * different baseline to its radio, and rows whose label wrapped to a second
- * line collided with the row beneath. Every row now shares one alignment
- * column regardless of label length.
+ * SINGLE SOURCE OF TRUTH for .qbehaviour_confidence_*. These rules previously
+ * lived in BOTH this file and local_acculearnfeedback/styles.css, with
+ * conflicting layouts (grid rows here, inline pills there). local/ wins that
+ * fight - it loads after this file both by plugin-type order and because it is
+ * additionally <link>ed from before_standard_html_head - so the rules here were
+ * silently dead while the two definitions drifted apart. The pill design below
+ * is the brand version, moved here to sit next to the markup that produces it.
+ *
+ * Colours use var(--name, fallback): the custom properties are declared in
+ * local_acculearnfeedback's :root, so the fallbacks keep this block styled if
+ * that plugin is ever absent.
  */
 
 .qbehaviour_confidence_box {
-    background-color: #f0f7ff;
-    border-left: 4px solid #0066cc;
-    border-radius: 4px;
-    padding: 1rem 1.25rem;
-    margin-top: 1rem;
+    margin-top: 14px;
+    padding: 14px 16px;
+    background: var(--al-blue-50, #eaf1f8);
+    border: 1px solid var(--al-ink-200, #e5e7eb);
+    border-radius: 12px;
 }
 
 .qbehaviour_confidence_label {
+    margin: 0 0 10px;
     font-weight: 600;
-    /* Was 8px with the <p>'s own default bottom margin still applying on top,
-       so the real gap was inconsistent between themes. */
-    margin: 0 0 0.75rem;
-    color: #333;
+    font-size: 13px;
+    color: var(--al-ink-700, #374151);
+    text-transform: uppercase;
+    letter-spacing: .03em;
     line-height: 1.4;
 }
 
+/* Wrapping row of pills. gap replaces the per-pill margin the old rule used,
+   so the spacing stays even on the row where the pills wrap. */
 .qbehaviour_confidence_options {
     display: flex;
-    flex-direction: column;
-    gap: 0.625rem;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
+/* The <label> IS the pill and contains its own radio, so a pill never breaks
+   away from its control when the row wraps, and the whole pill is clickable. */
 .qbehaviour_confidence_option {
-    display: grid;
-    /* Fixed first column: the radio never shrinks, and every label starts on
-       the same x position no matter how long the preceding label was. */
-    grid-template-columns: 1rem 1fr;
-    align-items: start;
-    column-gap: 0.625rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
     margin: 0;
+    padding: 6px 14px;
+    border: 1px solid var(--al-ink-200, #e5e7eb);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--al-ink-700, #374151);
+    font-size: 13.5px;
+    font-weight: normal;
+    line-height: 1.4;
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+
+.qbehaviour_confidence_option:hover {
+    border-color: var(--al-blue, #24598a);
 }
 
 .qbehaviour_confidence_radio {
-    /* Nudge the control onto the label's first-line optical centre; radios
-       otherwise sit high against a 1.4 line-height label. */
-    margin: 0.2em 0 0;
-    width: 1rem;
-    height: 1rem;
+    margin: 0;
+    flex: 0 0 auto;
+    accent-color: var(--al-blue, #24598a);
     cursor: pointer;
 }
 
 .qbehaviour_confidence_optiontext {
-    display: block;
-    margin: 0;
-    font-weight: normal;
-    line-height: 1.4;
-    cursor: pointer;
+    /* Keeps a long label from forcing the pill wider than the column. */
+    min-width: 0;
+}
+
+/* Selected pill. :has() rather than the old adjacent-sibling rule, because the
+   radio is now a CHILD of the label instead of its sibling. Browsers without
+   :has() simply show the radio's own checked state, which is still legible. */
+.qbehaviour_confidence_option:has(.qbehaviour_confidence_radio:checked) {
+    border-color: var(--al-blue, #24598a);
+    color: var(--al-blue, #24598a);
+    font-weight: 600;
 }
 
 /* Review pages render the radios disabled - make that legible rather than
-   leaving them looking clickable. */
-.qbehaviour_confidence_radio:disabled,
-.qbehaviour_confidence_radio:disabled + .qbehaviour_confidence_optiontext {
+   leaving the pills looking clickable. */
+.qbehaviour_confidence_option:has(.qbehaviour_confidence_radio:disabled) {
     cursor: default;
-    opacity: 0.75;
+    opacity: .75;
+    background: var(--al-ink-50, #f7f8fa);
 }
 
-/* Keyboard focus must stay visible; Boost resets outlines on some inputs. */
-.qbehaviour_confidence_radio:focus-visible {
-    outline: 2px solid #0066cc;
-    outline-offset: 2px;
+.qbehaviour_confidence_option:has(.qbehaviour_confidence_radio:disabled):hover {
+    border-color: var(--al-ink-200, #e5e7eb);
+}
+
+/* Keyboard focus must stay visible; Boost resets outlines on some inputs.
+   :focus-within on the label so the ring frames the whole pill. */
+.qbehaviour_confidence_option:focus-within {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(36, 89, 138, .28);
 }
 
 /*
  * Shared vertical rhythm for the question block itself, so the answer options
- * and the confidence block above share one spacing scale instead of each
- * relying on whatever default margin its own markup happened to carry.
+ * and the confidence block share one spacing scale instead of each relying on
+ * whatever default margin its own markup happened to carry.
  *
  * Scoped to .que so this cannot leak into any other radio list on the site.
  */

@@ -17,8 +17,8 @@ $revealnames = $canreveal ? optional_param('reveal', 0, PARAM_BOOL) : 0;
 $PAGE->set_url('/local/acculearnfeedback/teacher_review.php');
 $PAGE->set_context($context);
 $PAGE->set_title('AI Output Review');
-// Boost paints \$PAGE->set_heading() in the full-width page-header region,
-// which is a different element from the \$OUTPUT->heading() printed at the top
+// Boost paints $PAGE->set_heading() in the full-width page-header region,
+// which is a different element from the $OUTPUT->heading() printed at the top
 // of the content column - so passing the page's own title to both rendered it
 // twice, one above the other. The page heading is meant to name the SITE.
 $PAGE->set_heading($SITE->fullname);
@@ -320,8 +320,13 @@ if ($tab === 'feedback') {
     ");
 
     foreach ($rows as $r) {
+        // Same defensive decode as my_track.php: one malformed row must not
+        // take down the whole review queue for the teacher.
         $track = json_decode($r->track_json, true);
-        $narrative = $track['narrative'];
+        if (!is_array($track)) {
+            continue;
+        }
+        $narrative = $track['narrative'] ?? [];
         $statustone = $r->flagged ? 'flagged' : ($r->reviewed ? 'approved' : 'pending');
         $statuslabel = $r->flagged ? 'Flagged' : ($r->reviewed ? 'Approved' : 'Pending review');
 
@@ -336,16 +341,22 @@ if ($tab === 'feedback') {
         echo html_writer::tag('span', $statuslabel, ['class' => "al-badge al-badge--$statustone"]);
         echo html_writer::end_div();
 
-        echo html_writer::tag('p', s($narrative['overview']), ['style' => 'margin-top:8px;']);
+        echo html_writer::tag('p', s($narrative['overview'] ?? ''), ['style' => 'margin-top:8px;']);
 
         echo html_writer::start_div('al-table-wrap', ['style' => 'margin-top:8px;']);
         echo html_writer::start_tag('table', ['class' => 'generaltable', 'style' => 'width:100%;']);
         echo html_writer::tag('tr', html_writer::tag('th', 'Competency') . html_writer::tag('th', 'CM') . html_writer::tag('th', 'Mastery') . html_writer::tag('th', 'Pathway'));
-        foreach ($track['competencies'] as $c) {
+        foreach (($track['competencies'] ?? []) as $c) {
             echo html_writer::tag('tr',
                 html_writer::tag('td', s($c['competency_name'])) .
                 html_writer::tag('td',
-                    html_writer::tag('span', $c['cm'] ?? 'N/A', ['class' => 'tnum']) . '%' .
+                    // Was "$c['cm'] ?? 'N/A'" followed by a literal '%',
+                    // which rendered the nonsense string "N/A%" for any
+                    // competency the student has not attempted yet.
+                    ($c['cm'] !== null
+                        ? html_writer::tag('span', $c['cm'], ['class' => 'tnum']) . '%'
+                        : html_writer::tag('span', 'Not attempted',
+                            ['style' => 'color:var(--al-ink-500); font-size:0.9em;'])) .
                     html_writer::div(local_acculearnfeedback_progress_bar($c['cm'] ?? null, $c['mastery']), '', ['style' => 'min-width:90px;'])
                 ) .
                 html_writer::tag('td', s($c['mastery'])) .

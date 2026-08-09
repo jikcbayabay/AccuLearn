@@ -228,9 +228,15 @@ function local_acculearnfeedback_lp_badge($lp, $label) {
  * @return string HTML
  */
 function local_acculearnfeedback_progress_bar($cm, $mastery) {
+    // 'Insufficient Evidence' must map to the SAME tone the calling pages give
+    // its badge and card accent (developing). It was missing here, so it fell
+    // through to 'neutral' and drew a grey bar beside an amber badge on the
+    // same card - breaking the "badge, border accent and bar always agree"
+    // contract this function's docblock promises.
     $tones = [
         'Mastered' => 'mastered',
         'Developing' => 'developing',
+        'Insufficient Evidence' => 'developing',
         'Needs Improvement' => 'needs',
         'Not Attempted' => 'neutral',
     ];
@@ -471,12 +477,18 @@ function local_acculearnfeedback_pretest_notice() {
  */
 function local_acculearnfeedback_before_standard_html_head() {
     $cssurl = new moodle_url('/local/acculearnfeedback/styles.css');
-    $twurl = new moodle_url('/local/acculearnfeedback/tailwind-utilities.css');
+
+    // tailwind-utilities.css used to be loaded here as well. It was a 24KB
+    // minified Tailwind build left over from the archived Laravel/React
+    // prototype, served as a render-blocking request on EVERY page of the
+    // site, for every user - and not one Tailwind class (flex, px-4, bg-white,
+    // text-sm ...) appears in any of this plugin's PHP. The current pages are
+    // built entirely from the al-* classes in styles.css plus inline styles.
+    // Removing the <link> costs nothing visually and saves the request.
     return '
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="' . $twurl->out() . '">
         <link rel="stylesheet" href="' . $cssurl->out() . '">
     ';
 }

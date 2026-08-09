@@ -133,8 +133,8 @@ if ($export !== '') {
 $PAGE->set_url('/local/acculearnfeedback/usage_logs.php');
 $PAGE->set_context($context);
 $PAGE->set_title(get_string('usagelogstitle', 'local_acculearnfeedback'));
-// Boost paints \$PAGE->set_heading() in the full-width page-header region,
-// which is a different element from the \$OUTPUT->heading() printed at the top
+// Boost paints $PAGE->set_heading() in the full-width page-header region,
+// which is a different element from the $OUTPUT->heading() printed at the top
 // of the content column - so passing the page's own title to both rendered it
 // twice, one above the other. The page heading is meant to name the SITE.
 $PAGE->set_heading($SITE->fullname);

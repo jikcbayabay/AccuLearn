@@ -14,8 +14,8 @@ class qbehaviour_confidence_renderer extends qbehaviour_deferredfeedback_rendere
         ];
 
         $inputname = $qa->get_qt_field_name('confidence');
-        // The group needs its own id so the label can be associated with the
-        // radiogroup; $inputname is unique per question on the page.
+        // Unique per question on the page, so the group label can be tied to
+        // the radiogroup without colliding with the other questions.
         $labelid = $inputname . '_label';
 
         $html  = html_writer::start_div('qbehaviour_confidence_box');
@@ -24,7 +24,7 @@ class qbehaviour_confidence_renderer extends qbehaviour_deferredfeedback_rendere
             ['class' => 'qbehaviour_confidence_label', 'id' => $labelid]
         );
 
-        // role/aria-labelledby rather than a fieldset+legend: this markup is
+        // role/aria-labelledby rather than fieldset+legend: this markup is
         // injected inside the question's existing form markup, where Boost's
         // fieldset styling would fight the layout.
         $html .= html_writer::start_div('qbehaviour_confidence_options', [
@@ -51,14 +51,17 @@ class qbehaviour_confidence_renderer extends qbehaviour_deferredfeedback_rendere
                 $attrs['disabled'] = 'disabled';
             }
 
-            // Each radio and its label share a row wrapper. Previously they
-            // were siblings separated by <br>, which left the label's text
-            // baseline unaligned with the radio and produced uneven gaps that
-            // varied with the label's length.
-            $html .= html_writer::div(
+            // The radio sits INSIDE its label, matching the .al-radio-pills
+            // pattern already used by the pre-test entry screen. This keeps a
+            // radio and its text together as one pill when the row wraps, and
+            // makes the whole pill a click target. An earlier revision put the
+            // radio and label side by side inside a wrapper div, which silently
+            // broke the "selected pill" highlight, because the brand
+            // stylesheet's rule matches the label as the radio's next sibling.
+            $html .= html_writer::tag('label',
                 html_writer::empty_tag('input', $attrs) .
-                html_writer::label($label, $inputid, false, ['class' => 'qbehaviour_confidence_optiontext']),
-                'qbehaviour_confidence_option'
+                html_writer::tag('span', $label, ['class' => 'qbehaviour_confidence_optiontext']),
+                ['class' => 'qbehaviour_confidence_option', 'for' => $inputid]
             );
         }
 

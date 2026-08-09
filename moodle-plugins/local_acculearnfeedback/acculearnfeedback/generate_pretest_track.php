@@ -34,8 +34,8 @@ if (!$userid) {
 $PAGE->set_url('/local/acculearnfeedback/generate_pretest_track.php');
 $PAGE->set_context($context);
 $PAGE->set_title('Generate Initial Track');
-// Boost paints \$PAGE->set_heading() in the full-width page-header region,
-// which is a different element from the \$OUTPUT->heading() printed at the top
+// Boost paints $PAGE->set_heading() in the full-width page-header region,
+// which is a different element from the $OUTPUT->heading() printed at the top
 // of the content column - so passing the page's own title to both rendered it
 // twice, one above the other. The page heading is meant to name the SITE.
 $PAGE->set_heading($SITE->fullname);
@@ -82,7 +82,13 @@ try {
         echo html_writer::tag('tr',
             html_writer::tag('td', s($c['competency_name'])) .
             html_writer::tag('td',
-                html_writer::tag('span', $c['cm'] ?? 'N/A', ['class' => 'tnum']) . '%' .
+                // Was "$c['cm'] ?? 'N/A'" followed by a literal '%', which
+                // rendered the nonsense string "N/A%" for any competency the
+                // student has not attempted yet.
+                ($c['cm'] !== null
+                    ? html_writer::tag('span', $c['cm'], ['class' => 'tnum']) . '%'
+                    : html_writer::tag('span', 'Not attempted',
+                        ['style' => 'color:var(--al-ink-500); font-size:0.9em;'])) .
                 html_writer::div(local_acculearnfeedback_progress_bar($c['cm'] ?? null, $c['mastery']), '', ['style' => 'min-width:90px;'])
             ) .
             html_writer::tag('td', s($c['mastery'])) .

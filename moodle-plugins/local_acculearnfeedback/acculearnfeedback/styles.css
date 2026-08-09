@@ -44,8 +44,7 @@ body {
    keyboard users always get a clear brand-colored indicator. */
 .al-btn:focus-visible,
 .al-toolbar__link:focus-visible,
-.al-radio-pills label:focus-within,
-.qbehaviour_confidence_box label:focus-within {
+.al-radio-pills label:focus-within {
   outline: none;
   box-shadow: 0 0 0 3px rgba(36, 89, 138, .28);
 }
@@ -325,42 +324,11 @@ body {
 .al-radio-pills label:hover { border-color: var(--al-blue); }
 .al-radio-pills input[type=radio] { accent-color: var(--al-blue); margin: 0; }
 
-/* Confidence selector shown during a live quiz attempt (qbehaviour_confidence) */
-.qbehaviour_confidence_box {
-  margin-top: 14px;
-  padding: 14px 16px;
-  background: var(--al-blue-50);
-  border: 1px solid var(--al-ink-200);
-  border-radius: 12px;
-}
-.qbehaviour_confidence_label {
-  font-weight: 600;
-  font-size: 13px;
-  color: var(--al-ink-700);
-  text-transform: uppercase;
-  letter-spacing: .03em;
-  margin: 0 0 10px;
-}
-.qbehaviour_confidence_radio { accent-color: var(--al-blue); margin-right: 6px; vertical-align: middle; }
-.qbehaviour_confidence_option {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 14px 6px 4px;
-  margin: 0 8px 8px 0;
-  border-radius: 999px;
-  border: 1px solid var(--al-ink-200);
-  background: #fff;
-  color: var(--al-ink-700);
-  font-size: 13.5px;
-  cursor: pointer;
-  transition: background .15s ease, border-color .15s ease, color .15s ease;
-}
-.qbehaviour_confidence_radio:checked + .qbehaviour_confidence_option {
-  background: #fff;
-  border-color: var(--al-blue);
-  color: var(--al-blue);
-  font-weight: 600;
-}
+/* The confidence selector (.qbehaviour_confidence_*) is NOT styled here.
+   It lives in question/behaviour/confidence/styles.css, next to the renderer
+   that emits its markup. It used to be defined in both places with two
+   different layouts; whichever file loaded last silently won, so editing one
+   appeared to do nothing. Keep it in one file. */
 
 /* Subtle entrance for the main content cards - one short fade/rise on
    load, not a looping animation. Gives pages a sense of assembly instead

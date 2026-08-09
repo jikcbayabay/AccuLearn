@@ -9,8 +9,8 @@ $context = context_system::instance();
 $PAGE->set_url('/local/acculearnfeedback/my_track.php');
 $PAGE->set_context($context);
 $PAGE->set_title('My Learning Track');
-// Boost paints \$PAGE->set_heading() in the full-width page-header region,
-// which is a different element from the \$OUTPUT->heading() printed at the top
+// Boost paints $PAGE->set_heading() in the full-width page-header region,
+// which is a different element from the $OUTPUT->heading() printed at the top
 // of the content column - so passing the page's own title to both rendered it
 // twice, one above the other. The page heading is meant to name the SITE.
 $PAGE->set_heading($SITE->fullname);
@@ -36,8 +36,26 @@ if (!$trackrow) {
     exit;
 }
 
+// Guard the decode. track_json is AI-generated content stored verbatim, so a
+// truncated or malformed response is a real possibility - and reading
+// $track['narrative'] straight off a null decode fatals the page, leaving the
+// student with a blank screen rather than a usable message.
 $track = json_decode($trackrow->track_json, true);
-$narrative = $track['narrative'];
+if (!is_array($track) || empty($track['competencies'])) {
+    echo html_writer::start_div('al-page');
+    echo html_writer::div(
+        html_writer::div('<i class="fa fa-triangle-exclamation" aria-hidden="true"></i>', 'al-empty__icon') .
+        html_writer::div('Your track could not be displayed', 'al-empty__title') .
+        html_writer::div('It will rebuild automatically after your next quiz submission. '
+            . 'Tell your teacher if it keeps happening.', 'al-empty__sub'),
+        'al-card al-empty'
+    );
+    echo html_writer::end_div();
+    echo $OUTPUT->footer();
+    exit;
+}
+
+$narrative = $track['narrative'] ?? [];
 $competencies = $track['competencies'];
 
 echo html_writer::start_div('al-page');
@@ -53,10 +71,10 @@ echo html_writer::div(
 // Narrative card
 echo html_writer::start_div('al-card al-card--accent', ['style' => 'margin-bottom:24px;']);
 echo html_writer::tag('h4', '<i class="fa fa-compass" aria-hidden="true"></i>Overview', ['style' => 'margin-top:0;']);
-echo html_writer::tag('p', s($narrative['overview']));
+echo html_writer::tag('p', s($narrative['overview'] ?? ''));
 echo html_writer::tag('h5', '<i class="fa fa-bullseye" aria-hidden="true"></i>What to focus on next');
-echo html_writer::tag('p', s($narrative['next_focus']));
-echo html_writer::tag('p', s($narrative['encouragement']), ['style' => 'font-style:italic; color:var(--al-blue);']);
+echo html_writer::tag('p', s($narrative['next_focus'] ?? ''));
+echo html_writer::tag('p', s($narrative['encouragement'] ?? ''), ['style' => 'font-style:italic; color:var(--al-blue);']);
 echo html_writer::end_div();
 
 // Competency cards, grouped by the adaptive priority the mastery engine
