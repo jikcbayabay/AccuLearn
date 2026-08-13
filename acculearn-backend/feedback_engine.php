@@ -216,6 +216,23 @@ private function getAnswersForQuestion($questionid) {
                 return $base;
             }
 
+            // Summative only. 190 of 447 historical feedback rows are
+            // all-correct with low GI, so hinting on every quiz would put an
+            // OpenAI call on ~42% of attempts - a path that previously cost
+            // nothing at all. At that volume the hourly rate limiter starts
+            // refusing calls during a busy session and hints appear for some
+            // students and not others, which is worse than not having them.
+            // Enrichment also simply matters more at the end of a competency
+            // than after a five-item formative.
+            //
+            // Keys on the quiz name because that is what this method is given.
+            // All 29 quizzes follow the "Formative Quiz N" / "Summative Quiz"
+            // convention; a quiz named outside it gets no hints rather than
+            // unexpected spend.
+            if (stripos((string) $topicName, 'summative') === false) {
+                return $base;
+            }
+
             // Hints are a bonus on top of a response that is already complete
             // and already correct, so a rate limit or a bad API round-trip must
             // degrade to the canned congratulation rather than fail the whole
