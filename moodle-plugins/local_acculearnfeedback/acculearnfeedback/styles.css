@@ -72,10 +72,31 @@ body {
    keyboard users always get a clear brand-colored indicator. */
 .al-btn:focus-visible,
 .al-toolbar__link:focus-visible,
+.al-course-link:focus-visible,
 .al-radio-pills label:focus-within {
   outline: none;
   box-shadow: 0 0 0 3px rgba(36, 89, 138, .28);
 }
+
+/* A competency name / course name that navigates to its Moodle course.
+   Deliberately reads as a link at rest (not only on hover): it sits inside a
+   card full of non-interactive text, so nothing else signals that it can be
+   clicked. The chevron carries no meaning of its own and is hidden from
+   assistive tech at the markup level. */
+.al-course-link {
+  color: var(--al-blue);
+  text-decoration: none;
+  border-radius: 6px;
+}
+.al-course-link:hover { color: var(--al-blue-dark); text-decoration: underline; }
+.al-course-link .fa {
+  font-size: .72em;
+  margin-left: 6px;
+  opacity: .65;
+  vertical-align: middle;
+  transition: transform .15s ease;
+}
+.al-course-link:hover .fa { transform: translateX(2px); }
 
 .al-page { max-width: 900px; margin: 0 auto; padding: 0 4px; }
 
@@ -153,6 +174,74 @@ body {
 .al-badge--lp4 { background: var(--al-green-50); color: var(--al-green-700); }
 
 .al-badge__dot { width: 6px; height: 6px; border-radius: 999px; display: inline-block; }
+
+/* ---- Per-question breakdown on the AI feedback page ---- */
+
+.al-question__text {
+  font-weight: 600;
+  color: var(--al-ink-900);
+  margin-bottom: 10px;
+}
+.al-question__text p:last-child { margin-bottom: 0; }
+
+.al-options { list-style: none; margin: 0; padding: 0; }
+
+.al-option {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  border: 1px solid var(--al-ink-200);
+  border-left: 4px solid var(--al-ink-200);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--al-ink-700);
+}
+.al-option__text { flex: 1; min-width: 180px; }
+.al-option__text p:last-child { margin-bottom: 0; }
+
+/* Correct and chosen-but-wrong are distinguished by BORDER and an explicit
+   text tag, not by fill colour alone - a student with colour vision deficiency
+   has to be able to tell which row was theirs and which was right. */
+.al-option--correct {
+  border-color: var(--al-green);
+  border-left-color: var(--al-green);
+  background: var(--al-green-50);
+}
+.al-option--wrong {
+  border-color: var(--al-red);
+  border-left-color: var(--al-red);
+  background: var(--al-red-50);
+}
+
+/* Single-class selector so the two state rules below (two classes each) win
+   on specificity rather than on source order. */
+.al-option__tag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid currentColor;
+  color: var(--al-ink-500);
+}
+.al-option--correct .al-option__tag { color: var(--al-green-700); }
+.al-option--wrong .al-option__tag { color: var(--al-red-ink); }
+
+.al-question__why {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--al-blue-50);
+  border-left: 3px solid var(--al-blue);
+  font-size: 14px;
+  color: var(--al-ink-700);
+}
 
 .tnum { font-variant-numeric: tabular-nums; }
 
@@ -386,4 +475,5 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .al-page .al-card { animation: none; }
   .al-btn, .al-btn:active, .coursebox { transition: none; transform: none; }
+  .al-course-link .fa, .al-course-link:hover .fa { transition: none; transform: none; }
 }

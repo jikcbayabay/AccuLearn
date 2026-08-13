@@ -41,6 +41,14 @@ $string['privacy:metadata:acculearn_pretest_responses:confidence'] = 'The confid
 $string['privacy:metadata:acculearn_pretest_responses:is_correct'] = 'Whether the response was correct.';
 $string['privacy:metadata:acculearn_pretest_responses:entered_at'] = 'The time this response was entered into the system.';
 
+$string['privacy:metadata:acculearn_posttest_responses'] = 'A single paper post-test question response, manually entered by a teacher or administrator. Uses the same questions as the pre-test so the two can be compared.';
+$string['privacy:metadata:acculearn_posttest_responses:userid'] = 'The ID of the student who answered this question.';
+$string['privacy:metadata:acculearn_posttest_responses:questionid'] = 'The ID of the question answered.';
+$string['privacy:metadata:acculearn_posttest_responses:competency_id'] = 'The competency this question is mapped to.';
+$string['privacy:metadata:acculearn_posttest_responses:confidence'] = 'The confidence level recorded for this response (1 = low, 2 = medium, 3 = high).';
+$string['privacy:metadata:acculearn_posttest_responses:is_correct'] = 'Whether the response was correct.';
+$string['privacy:metadata:acculearn_posttest_responses:entered_at'] = 'The time this response was entered into the system.';
+
 $string['privacy:metadata:acculearn_review_log'] = 'A record of a teacher approving, flagging, or overriding an AI-generated output.';
 $string['privacy:metadata:acculearn_review_log:target_userid'] = 'The ID of the student whose feedback/track/grade was reviewed.';
 $string['privacy:metadata:acculearn_review_log:reviewer_userid'] = 'The ID of the teacher who performed the review action.';

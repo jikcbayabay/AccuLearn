@@ -100,6 +100,19 @@ class provider implements
         );
 
         $collection->add_database_table(
+            'acculearn_posttest_responses',
+            [
+                'userid' => 'privacy:metadata:acculearn_posttest_responses:userid',
+                'questionid' => 'privacy:metadata:acculearn_posttest_responses:questionid',
+                'competency_id' => 'privacy:metadata:acculearn_posttest_responses:competency_id',
+                'confidence' => 'privacy:metadata:acculearn_posttest_responses:confidence',
+                'is_correct' => 'privacy:metadata:acculearn_posttest_responses:is_correct',
+                'entered_at' => 'privacy:metadata:acculearn_posttest_responses:entered_at',
+            ],
+            'privacy:metadata:acculearn_posttest_responses'
+        );
+
+        $collection->add_database_table(
             'acculearn_review_log',
             [
                 'target_userid' => 'privacy:metadata:acculearn_review_log:target_userid',
@@ -149,6 +162,9 @@ class provider implements
         $haspersonaldata =
             (bool) $DB->get_field_sql("SELECT COUNT(*) FROM acculearn_learning_tracks WHERE userid = ?", [$userid]) ||
             (bool) $DB->get_field_sql("SELECT COUNT(*) FROM acculearn_pretest_responses WHERE userid = ?", [$userid]) ||
+            // Post-test IS a prefixed, Moodle-managed table, so unlike the
+            // pre-test line above it can use record_exists_select().
+            $DB->record_exists_select('acculearn_posttest_responses', 'userid = ?', [$userid]) ||
             $DB->record_exists_select('acculearn_review_log', 'target_userid = ?', [$userid]);
 
         if ($haspersonaldata) {
@@ -248,6 +264,27 @@ class provider implements
             );
         }
 
+        $posttest = $DB->get_records_sql(
+            "SELECT * FROM {acculearn_posttest_responses} WHERE userid = ? ORDER BY entered_at",
+            [$userid]
+        );
+        if ($posttest) {
+            $data = array_values(array_map(function($r) {
+                return (object) [
+                    'questionid' => $r->questionid,
+                    'competency_id' => $r->competency_id,
+                    'confidence' => $r->confidence,
+                    'is_correct' => (bool) $r->is_correct,
+                    'entered_at' => transform::datetime($r->entered_at),
+                ];
+            }, $posttest));
+
+            writer::with_context($context)->export_data(
+                [get_string('pluginname', 'local_acculearnfeedback'), 'posttest_responses'],
+                (object) ['responses' => $data]
+            );
+        }
+
         $reviews = $DB->get_records_sql(
             "SELECT * FROM {acculearn_review_log} WHERE target_userid = ? ORDER BY timecreated",
             [$userid]
@@ -334,5 +371,6 @@ class provider implements
         $DB->execute("DELETE FROM acculearn_feedback WHERE userid = ?", [$userid]);
         $DB->execute("DELETE FROM acculearn_learning_tracks WHERE userid = ?", [$userid]);
         $DB->execute("DELETE FROM acculearn_pretest_responses WHERE userid = ?", [$userid]);
+        $DB->execute("DELETE FROM {acculearn_posttest_responses} WHERE userid = ?", [$userid]);
     }
 }

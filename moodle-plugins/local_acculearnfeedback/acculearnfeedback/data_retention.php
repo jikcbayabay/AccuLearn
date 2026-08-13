@@ -34,6 +34,14 @@ $categories = [
         'fromclause' => 'acculearn_pretest_responses',
         'timefield' => 'entered_at',
     ],
+    // Post-test is the newer table and IS Moodle-managed, so unlike the
+    // pre-test one directly above it needs the {braces} form - the exact
+    // mix-up this file's comment above warns about.
+    'posttest' => [
+        'label' => 'Post-test responses',
+        'fromclause' => '{acculearn_posttest_responses}',
+        'timefield' => 'entered_at',
+    ],
     'feedback' => [
         'label' => 'AI feedback records',
         'fromclause' => 'acculearn_feedback',

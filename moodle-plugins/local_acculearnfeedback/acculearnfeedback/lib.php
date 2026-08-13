@@ -8,6 +8,16 @@ defined('MOODLE_INTERNAL') || die();
  *  quizaccess_acculearn's rule.php already uses to block quiz attempts. */
 define('LOCAL_ACCULEARNFEEDBACK_UNLOCK_GROUP', 'AccuLearn Unlocked');
 
+/** Question-bank names, in paper order, of the ten items used on the pre-test
+ *  in every competency. These are the BANK's names, which is why they run 1-5
+ *  then 11-15; the entry screen renumbers them 1-10 for the person
+ *  transcribing. Change this list (and nothing else) if a future pre-test uses
+ *  a different set of items - see local_acculearnfeedback_pretest_items(). */
+define('LOCAL_ACCULEARNFEEDBACK_PRETEST_ITEMS', [
+    'Question 1', 'Question 2', 'Question 3', 'Question 4', 'Question 5',
+    'Question 11', 'Question 12', 'Question 13', 'Question 14', 'Question 15',
+]);
+
 /**
  * Finds (or creates) the per-course "unlocked" group used for broader
  * module-visibility gating. Idempotent - safe to call on every sync.
@@ -124,6 +134,304 @@ function local_acculearnfeedback_sync_all_unlock_groups() {
     }
 
     return count($userids);
+}
+
+/**
+ * Recomputes a student's competency rows live, straight from the gradebook.
+ *
+ * The learning track is stored as a JSON snapshot, and that snapshot is only
+ * rewritten when its evidence signature changes (see TrackEngine). Everything
+ * in it that is FACT rather than AI prose - the per-quiz pass checklist, the
+ * mastery percentages, which competency is next - can therefore be older than
+ * the gradebook it describes. That is not a hypothetical: a quiz regraded
+ * outside a submission, or a formative passed without moving a mastery band,
+ * both leave the snapshot behind, and the student is shown "not taken" beside
+ * a quiz they have sat and passed.
+ *
+ * So the pages recompute the deterministic half at render time and keep only
+ * the narrative from storage. The computation is the same MasteryEngine call
+ * the quiz access rule already makes on every quiz page view, so this is a
+ * cost the site is already paying elsewhere.
+ *
+ * @param int $userid
+ * @param string $source 'quiz' or 'pretest' - MUST match the source the stored
+ *   track was built from, since a pretest-sourced track reads a different
+ *   evidence table entirely.
+ * @return array|null competency rows in the same shape as the stored track's
+ *   'competencies', or null if the backend is unavailable (caller should then
+ *   fall back to the stored snapshot rather than showing nothing).
+ */
+function local_acculearnfeedback_live_competencies($userid, $source = 'quiz') {
+    $backendpath = '/var/www/html/acculearn-backend/mastery_engine.php';
+    if (!file_exists($backendpath)) {
+        return null;
+    }
+
+    try {
+        require_once($backendpath);
+        $engine = new MasteryEngine();
+        $live = $engine->computeFullTrack($userid, $source);
+        return empty($live) ? null : $live;
+    } catch (\Throwable $e) {
+        // A backend/database problem must not take down the student's page -
+        // the stored snapshot is still worth showing.
+        debugging('AccuLearn live track recompute failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        return null;
+    }
+}
+
+/**
+ * Maps competency id => the Moodle course it is taught in, for the CURRENT
+ * user, skipping any course they cannot actually open.
+ *
+ * Each AccuLearn competency is its own Moodle course, so the competency name
+ * on the learning track is the natural way back to the lessons and quizzes -
+ * but only when the link goes somewhere the student can go. can_access_course()
+ * covers hidden courses and missing enrolments, so an un-enrolled student gets
+ * plain text instead of a link into an enrolment error.
+ *
+ * Note this is NOT gated on the AccuLearn learning pathway. LP gates quiz
+ * ATTEMPTS (quizaccess_acculearn) and group-restricted activities, not reading
+ * the course - a student is meant to be able to look ahead at what is coming.
+ *
+ * @return stdClass[] keyed by competency id, each {courseid, fullname, url}
+ */
+function local_acculearnfeedback_competency_courses() {
+    global $DB;
+
+    $comps = $DB->get_records_sql(
+        "SELECT id, courseid FROM acculearn_competencies WHERE courseid IS NOT NULL");
+    if (!$comps) {
+        return [];
+    }
+
+    $courseids = array_unique(array_map(function($c) {
+        return (int) $c->courseid;
+    }, $comps));
+    $courses = $DB->get_records_list('course', 'id', $courseids);
+
+    $map = [];
+    foreach ($comps as $c) {
+        $course = $courses[$c->courseid] ?? null;
+        if (!$course || !can_access_course($course)) {
+            continue;
+        }
+        $entry = new stdClass();
+        $entry->courseid = (int) $course->id;
+        $entry->fullname = format_string($course->fullname, true,
+            ['context' => context_course::instance($course->id)]);
+        $entry->url = new moodle_url('/course/view.php', ['id' => $course->id]);
+        $map[(int) $c->id] = $entry;
+    }
+    return $map;
+}
+
+/**
+ * The two paper assessment phases, and where each one's responses live.
+ *
+ * The pre- and post-test use the SAME ten items per competency, so the only
+ * thing that differs is the table written to - which is exactly the detail
+ * that is easy to get wrong here, because the two tables follow opposite
+ * naming conventions:
+ *
+ *   pre  -> acculearn_pretest_responses     legacy, created outside Moodle's
+ *                                           schema management, so it has NO
+ *                                           mdl_ prefix and is queried by its
+ *                                           literal name
+ *   post -> {acculearn_posttest_responses}  created the normal Moodle way, so
+ *                                           it DOES carry the site prefix and
+ *                                           needs the {braces} placeholder
+ *
+ * Getting that backwards produces a "table doesn't exist" write failure, which
+ * has already happened once on this site with acculearn_usage_log. Both forms
+ * live here and nowhere else so no caller has to remember which is which - the
+ * 'table' value is always safe to interpolate straight into raw SQL.
+ *
+ * @return stdClass[] keyed by phase key ('pre'|'post')
+ */
+function local_acculearnfeedback_test_phases() {
+    static $phases = null;
+    if ($phases !== null) {
+        return $phases;
+    }
+
+    $pre = new stdClass();
+    $pre->key = 'pre';
+    $pre->label = 'Pre-test';
+    $pre->table = 'acculearn_pretest_responses';
+    $pre->logaction = 'pretest_entered';
+    $pre->blurb = 'Baseline, sat before instruction. This is what the student\'s initial '
+        . 'learning track is computed from.';
+
+    $post = new stdClass();
+    $post->key = 'post';
+    $post->label = 'Post-test';
+    $post->table = '{acculearn_posttest_responses}';
+    $post->logaction = 'posttest_entered';
+    $post->blurb = 'Sat after instruction, using the same ten items as the pre-test so the two '
+        . 'can be compared directly. Recorded for the study only - it does NOT change the '
+        . 'student\'s learning track or unlock anything.';
+
+    $phases = ['pre' => $pre, 'post' => $post];
+    return $phases;
+}
+
+/**
+ * One phase by key, falling back to the pre-test for anything unrecognised.
+ *
+ * @param string $key
+ * @return stdClass
+ */
+function local_acculearnfeedback_test_phase($key) {
+    $phases = local_acculearnfeedback_test_phases();
+    return $phases[$key] ?? $phases['pre'];
+}
+
+/**
+ * The items that were actually on the paper pre-test, in paper order.
+ *
+ * The pre-test used ten items per competency - numbered 1-5 and 11-15 on the
+ * paper - but acculearn_question_competency maps the ENTIRE question bank to
+ * each competency: 80 to 140 rows, because the bank holds several duplicate
+ * copies of the same 40 questions (competency 7 has six copies of each). The
+ * entry screen listed all of them and asked staff to fill in only the ten they
+ * recognised, which is a 100-row table to transcribe ten answers into.
+ *
+ * Two filters produce the real paper:
+ *  - name is one of the ten used (LOCAL_ACCULEARNFEEDBACK_PRETEST_ITEMS), and
+ *  - where several copies share a name, the lowest question id wins.
+ *
+ * That the lowest-id copy is the right one is not an assumption: the question
+ * ids already recorded in acculearn_pretest_responses for all 15 students match
+ * this set EXACTLY in competencies 3-7, and match it in 1-2 apart from a
+ * handful of stray rows belonging only to the teststudent QA account. So
+ * existing entries still line up with the row they were saved against and stay
+ * editable.
+ *
+ * Falls back to the full mapped list if the names ever stop matching (a future
+ * pre-test using different items), so this can only ever tidy the page - never
+ * leave it empty and unusable.
+ *
+ * @param int $competencyid
+ * @return array question records keyed by id, in paper order
+ */
+function local_acculearnfeedback_pretest_items($competencyid) {
+    global $DB;
+
+    $all = $DB->get_records_sql("
+        SELECT q.id, q.name, q.questiontext
+          FROM {question} q
+          JOIN acculearn_question_competency qc ON qc.questionid = q.id
+         WHERE qc.competency_id = ?
+      ORDER BY q.id", [$competencyid]);
+
+    $wanted = array_flip(LOCAL_ACCULEARNFEEDBACK_PRETEST_ITEMS);
+    $picked = [];
+    $seen = [];
+    foreach ($all as $q) {
+        if (!isset($wanted[$q->name]) || isset($seen[$q->name])) {
+            continue;   // Not a pre-test item, or a duplicate copy of one.
+        }
+        $seen[$q->name] = true;
+        $picked[$q->id] = $q;
+    }
+
+    return $picked ?: $all;
+}
+
+/**
+ * Rebuilds an attempt question by question: what was asked, what the options
+ * were, which one the student picked, which was right, and how sure they were.
+ *
+ * Read live from Moodle's own question engine rather than from anything
+ * AccuLearn stored, for two reasons. It is exact - the engine is where the
+ * attempt actually lives, including the per-student shuffled option order, so
+ * the page shows the paper the student really sat. And it works for EVERY
+ * attempt ever made, including the 133 that were graded before this breakdown
+ * existed; only the AI explanation layered on top is limited to newer
+ * attempts.
+ *
+ * Degrades quietly for anything that is not a simple multiple-choice item:
+ * the question, the response summary and the correct-answer summary still
+ * render, just without the option list.
+ *
+ * @param stdClass $attempt a quiz_attempts record (needs ->uniqueid)
+ * @return stdClass[] one row per slot: {slot, questiontext, questiontextformat,
+ *   correct, partial, graded, confidence, responsesummary, rightanswer, options[]}
+ */
+function local_acculearnfeedback_attempt_breakdown($attempt) {
+    global $CFG;
+    require_once($CFG->dirroot . '/question/engine/lib.php');
+
+    try {
+        $quba = question_engine::load_questions_usage_by_activity($attempt->uniqueid);
+    } catch (\Throwable $e) {
+        debugging('AccuLearn could not load question usage for attempt '
+            . $attempt->id . ': ' . $e->getMessage(), DEBUG_DEVELOPER);
+        return [];
+    }
+
+    $rows = [];
+    foreach ($quba->get_slots() as $slot) {
+        $qa = $quba->get_question_attempt($slot);
+        $question = $qa->get_question();
+
+        // get_fraction() is null until graded, 1.0 for fully right. Used in
+        // preference to matching on question_state subclasses, which vary by
+        // behaviour - this attempt uses the custom confidence behaviour.
+        $fraction = $qa->get_fraction();
+
+        $row = new stdClass();
+        $row->slot = $slot;
+        $row->questiontext = $question->questiontext;
+        $row->questiontextformat = $question->questiontextformat;
+        $row->graded = ($fraction !== null);
+        $row->correct = ($fraction !== null && $fraction >= 1.0);
+        $row->partial = ($fraction !== null && $fraction > 0 && $fraction < 1.0);
+        $row->confidence = $qa->get_last_qt_var('confidence');
+        $row->responsesummary = $qa->get_response_summary();
+        $row->rightanswer = $qa->get_right_answer_summary();
+        $row->options = [];
+
+        // Multiple choice: get_order() is the student's own shuffled order, and
+        // the 'answer' variable is an index INTO that order, not an answer id -
+        // reading it any other way silently marks the wrong option as chosen.
+        if (method_exists($question, 'get_order') && !empty($question->answers)) {
+            $order = $question->get_order($qa);
+            $chosen = $qa->get_last_qt_var('answer');
+            foreach ($order as $index => $answerid) {
+                if (!isset($question->answers[$answerid])) {
+                    continue;
+                }
+                $answer = $question->answers[$answerid];
+                $option = new stdClass();
+                $option->text = $answer->answer;
+                $option->format = $answer->answerformat;
+                $option->iscorrect = ((float) $answer->fraction === 1.0);
+                $option->ischosen = ($chosen !== null && $chosen !== ''
+                    && (int) $chosen === (int) $index);
+                $row->options[] = $option;
+            }
+        }
+
+        $rows[] = $row;
+    }
+
+    return $rows;
+}
+
+/**
+ * Human label for the 1-3 confidence rating the student gave an answer.
+ *
+ * @return array [label, tone] where tone matches the al-badge--* suffixes.
+ */
+function local_acculearnfeedback_confidence_label($confidence) {
+    switch ((int) $confidence) {
+        case 1: return ['Guessed', 'neutral'];
+        case 2: return ['Fairly sure', 'developing'];
+        case 3: return ['Certain', 'mastered'];
+        default: return [null, 'neutral'];
+    }
 }
 
 /**
@@ -512,6 +820,7 @@ function local_acculearnfeedback_usage_action_label($action) {
         'feedback_generated' => 'AI feedback generated',
         'track_generated'    => 'Learning track generated',
         'pretest_entered'    => 'Pre-test results entered by staff',
+        'posttest_entered'   => 'Post-test results entered by staff',
     ];
     return $labels[$action] ?? ucfirst(str_replace('_', ' ', $action));
 }
@@ -635,7 +944,13 @@ function local_acculearnfeedback_pretest_notice() {
  * the real callsite in core_renderer.php, not guessed.
  */
 function local_acculearnfeedback_before_standard_html_head() {
-    $cssurl = new moodle_url('/local/acculearnfeedback/styles.css');
+    // styles.css is served straight off disk, not through Moodle's CSS cache,
+    // so nothing was busting the browser cache for it - a deployed style
+    // change could sit invisible behind a cached copy until a hard reload.
+    // The plugin version is a value that only moves when the plugin is
+    // upgraded, which is exactly when the file may have changed.
+    $cssurl = new moodle_url('/local/acculearnfeedback/styles.css',
+        ['v' => get_config('local_acculearnfeedback', 'version')]);
 
     // tailwind-utilities.css used to be loaded here as well. It was a 24KB
     // minified Tailwind build left over from the archived Laravel/React
@@ -702,7 +1017,7 @@ function local_acculearnfeedback_before_footer() {
         $items[] = [
             'url' => $CFG->wwwroot . '/local/acculearnfeedback/pretest_entry.php',
             'icon' => 'fa-pencil',
-            'label' => 'Pre-Test Entry',
+            'label' => 'Pre/Post-Test Entry',
         ];
         $items[] = [
             'url' => $CFG->wwwroot . '/local/acculearnfeedback/tagquestions.php',

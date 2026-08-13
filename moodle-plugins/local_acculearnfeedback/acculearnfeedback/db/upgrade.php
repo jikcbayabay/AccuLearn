@@ -88,5 +88,44 @@ function xmldb_local_acculearnfeedback_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026072904, 'local', 'acculearnfeedback');
     }
 
+    if ($oldversion < 2026081002) {
+
+        // Paper POST-test responses, for the study's pre/post comparison.
+        //
+        // A separate table rather than a 'phase' column on
+        // acculearn_pretest_responses. That table has a UNIQUE(userid,
+        // questionid) index and is written with INSERT ... ON DUPLICATE KEY
+        // UPDATE, so the post-test answer to a question would land on the
+        // student's PRE-test row and overwrite it - silently destroying the
+        // baseline half of the comparison. Adding the phase to that unique
+        // index instead would mean rebuilding an index on live data holding
+        // every student's baseline, for no gain over a clean new table.
+        //
+        // This one is created the normal Moodle way, so unlike the five legacy
+        // tables it DOES carry the site prefix and must be queried as
+        // {acculearn_posttest_responses}.
+        $table = new xmldb_table('acculearn_posttest_responses');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '20', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('questionid', XMLDB_TYPE_INTEGER, '20', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('competency_id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('confidence', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('is_correct', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('entered_at', XMLDB_TYPE_INTEGER, '20', null, XMLDB_NOTNULL, null, null);
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_index('userid', XMLDB_INDEX_NOTUNIQUE, ['userid']);
+        $table->add_index('competency_id', XMLDB_INDEX_NOTUNIQUE, ['competency_id']);
+        // Required, not just for integrity: the save path relies on it for
+        // ON DUPLICATE KEY UPDATE, so re-entering a student's answer corrects
+        // the existing row instead of appending a second one.
+        $table->add_index('userid_questionid', XMLDB_INDEX_UNIQUE, ['userid', 'questionid']);
+
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2026081002, 'local', 'acculearnfeedback');
+    }
+
     return true;
 }

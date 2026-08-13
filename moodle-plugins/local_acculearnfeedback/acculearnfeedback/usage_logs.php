@@ -56,12 +56,24 @@ $sql = "SELECT l.*, u.firstname, u.lastname, c.fullname AS coursename
  * calendar days on which the student did anything, which is defensible from
  * event timestamps. A true time-on-task figure would need session end events
  * that Moodle does not reliably emit.
+ *
+ * TIMEZONE: the stored timestamps are correct (epoch seconds are absolute),
+ * but the DAY BUCKETING was not. MySQL's FROM_UNIXTIME() uses the database
+ * server's timezone, which here is UTC, while every timestamp shown on screen
+ * is rendered in Moodle's timezone (UTC+8). Days were therefore being cut at
+ * 08:00 local rather than midnight, so anything a student did before 8am was
+ * counted against the previous day - on real data that misfiled roughly a
+ * hundred events per day. The offset below comes from Moodle's own configured
+ * timezone so the buckets match what the page displays. A fixed offset is
+ * safe here because the study's timezone (Philippines) has no daylight saving.
  */
+$tzoffset = (int) (new DateTimeZone(\core_date::get_server_timezone()))
+    ->getOffset(new DateTime('@' . time()));
 $summarysql = "
     SELECT l.userid,
            u.firstname, u.lastname,
            COUNT(*)                                                        AS events,
-           COUNT(DISTINCT FROM_UNIXTIME(l.timecreated, '%Y-%m-%d'))        AS activedays,
+           COUNT(DISTINCT FROM_UNIXTIME(l.timecreated + $tzoffset, '%Y-%m-%d')) AS activedays,
            SUM(l.action = 'session_start')                                 AS logins,
            SUM(l.action = 'view_lesson')                                   AS lessonviews,
            SUM(l.action IN ('quiz_submitted', 'quiz_attempt_submitted'))   AS quizsubmits,

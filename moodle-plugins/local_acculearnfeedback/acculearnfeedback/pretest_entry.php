@@ -14,7 +14,7 @@ require_capability('local/acculearnfeedback:managesequence', $context);
 
 $PAGE->set_url('/local/acculearnfeedback/pretest_entry.php');
 $PAGE->set_context($context);
-$PAGE->set_title('Enter Pre-Test Results');
+$PAGE->set_title('Enter Pre/Post-Test Results');
 // Boost paints $PAGE->set_heading() in the full-width page-header region,
 // which is a different element from the $OUTPUT->heading() printed at the top
 // of the content column - so passing the page's own title to both rendered it
@@ -31,6 +31,9 @@ $PAGE->set_heading($SITE->fullname);
 if (optional_param('clearselection', 0, PARAM_BOOL)) {
     unset($SESSION->acculearn_pretest_userid);
     unset($SESSION->acculearn_pretest_competencyid);
+    // Which phase is being entered is deliberately NOT cleared: staff work
+    // through a whole stack of post-test papers in one sitting, so resetting
+    // to pre-test between students would be a trap.
     redirect($PAGE->url);
 }
 
@@ -51,17 +54,23 @@ if (data_submitted() && confirm_sesskey()) {
     $formaction = optional_param('formaction', '', PARAM_ALPHA);
 
     if ($formaction === 'select') {
-        // Just updates which student/competency is "current" - not itself
+        // Just updates which student/competency/phase is "current" - not itself
         // a data-changing action, but still POST+sesskey rather than a
         // GET query string, so it never appears in the URL.
         $SESSION->acculearn_pretest_userid = optional_param('userid', 0, PARAM_INT);
         $SESSION->acculearn_pretest_competencyid = optional_param('competencyid', 0, PARAM_INT);
+        $SESSION->acculearn_pretest_phase = local_acculearnfeedback_test_phase(
+            optional_param('phase', 'pre', PARAM_ALPHA))->key;
         redirect($PAGE->url);
     }
 
     if ($formaction === 'saveresponses') {
         $selecteduserid = $SESSION->acculearn_pretest_userid ?? 0;
         $competencyid = $SESSION->acculearn_pretest_competencyid ?? 0;
+        // Re-resolved from the session, never from the submitted form, so a
+        // tampered or stale POST cannot write post-test answers into the
+        // pre-test baseline table (or the reverse).
+        $phase = local_acculearnfeedback_test_phase($SESSION->acculearn_pretest_phase ?? 'pre');
 
         if ($selecteduserid && $competencyid) {
             $questionids = required_param_array('questionid', PARAM_INT);
@@ -72,8 +81,12 @@ if (data_submitted() && confirm_sesskey()) {
                 $confidence = optional_param("confidence_$qid", 0, PARAM_INT);
                 $correct = optional_param("correct_$qid", -1, PARAM_INT);
                 if ($confidence > 0 && $correct >= 0) {
+                    // {$phase->table} is a fixed string from
+                    // local_acculearnfeedback_test_phases(), never user input,
+                    // and already carries the right prefix convention for the
+                    // phase - see that function for why the two differ.
                     $DB->execute("
-                        INSERT INTO acculearn_pretest_responses
+                        INSERT INTO {$phase->table}
                             (userid, questionid, competency_id, confidence, is_correct, entered_at)
                         VALUES (?, ?, ?, ?, ?, ?)
                         ON DUPLICATE KEY UPDATE
@@ -90,21 +103,23 @@ if (data_submitted() && confirm_sesskey()) {
             // still complete.
             $compname = $DB->get_field_sql(
                 "SELECT name FROM acculearn_competencies WHERE id = ?", [$competencyid]);
-            local_acculearnfeedback_log_usage($selecteduserid, 'pretest_entered', 'competency',
+            local_acculearnfeedback_log_usage($selecteduserid, $phase->logaction, 'competency',
                 $competencyid,
-                "Pre-test results entered for {$compname}: {$saved} item(s), recorded by "
+                "{$phase->label} results entered for {$compname}: {$saved} item(s), recorded by "
                     . fullname($USER), null);
 
-            redirect($PAGE->url, "Saved $saved responses.", null, \core\output\notification::NOTIFY_SUCCESS);
+            redirect($PAGE->url, "Saved $saved {$phase->label} responses.", null,
+                \core\output\notification::NOTIFY_SUCCESS);
         }
     }
 }
 
 $selecteduserid = $SESSION->acculearn_pretest_userid ?? 0;
 $competencyid = $SESSION->acculearn_pretest_competencyid ?? 0;
+$phase = local_acculearnfeedback_test_phase($SESSION->acculearn_pretest_phase ?? 'pre');
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading('Enter Pre-Test Results');
+echo $OUTPUT->heading('Enter ' . $phase->label . ' Results');
 
 echo html_writer::start_div('al-page');
 
@@ -152,7 +167,7 @@ $candidates = $DB->get_records_sql("
     WHERE u.deleted = 0
       AND u.suspended = 0
       AND u.username <> 'guest'
-      AND NOT EXISTS (SELECT 1 FROM acculearn_pretest_responses p WHERE p.userid = u.id)
+      AND NOT EXISTS (SELECT 1 FROM {$phase->table} p WHERE p.userid = u.id)
     ORDER BY u.lastname, u.firstname
 ");
 
@@ -167,13 +182,17 @@ foreach ($candidates as $cand) {
 if ($awaiting) {
     echo html_writer::start_div('al-card al-card--flag-needs', ['style' => 'margin-bottom:16px;']);
     echo html_writer::tag('h4',
-        '<i class="fa fa-clipboard-list" aria-hidden="true"></i>Awaiting pre-test entry ('
-        . count($awaiting) . ')',
+        '<i class="fa fa-clipboard-list" aria-hidden="true"></i>Awaiting ' . strtolower($phase->label)
+        . ' entry (' . count($awaiting) . ')',
         ['style' => 'margin-top:0;']);
     echo html_writer::tag('p',
-        'These students have no pre-test responses recorded yet, so AccuLearn cannot compute a '
-        . 'personalised learning path for them. They are currently seeing a prompt asking them to '
-        . 'speak to you about the pre-test.',
+        $phase->key === 'pre'
+            ? 'These students have no pre-test responses recorded yet, so AccuLearn cannot compute a '
+                . 'personalised learning path for them. They are currently seeing a prompt asking them to '
+                . 'speak to you about the pre-test.'
+            : 'These students have no post-test responses recorded yet. The post-test is the study\'s '
+                . 'end-point measure, so a missing one leaves that student out of the pre/post '
+                . 'comparison. Nothing is shown to the student about this.',
         ['style' => 'color:var(--al-ink-500); font-size:0.9em;']);
     $names = [];
     foreach ($awaiting as $a) {
@@ -184,8 +203,8 @@ if ($awaiting) {
     echo html_writer::end_div();
 } else {
     echo html_writer::div(
-        '<i class="fa fa-circle-check" aria-hidden="true"></i> Every enrolled student has pre-test '
-        . 'responses recorded.',
+        '<i class="fa fa-circle-check" aria-hidden="true"></i> Every enrolled student has '
+        . strtolower($phase->label) . ' responses recorded.',
         'al-card al-card--flag-mastered',
         ['style' => 'margin-bottom:16px;']);
 }
@@ -194,6 +213,19 @@ echo html_writer::start_div('al-card', ['style' => 'display:flex; flex-wrap:wrap
 echo html_writer::start_tag('form', ['method' => 'post', 'action' => $PAGE->url, 'style' => 'display:flex; flex-wrap:wrap; align-items:center; gap:20px;']);
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'formaction', 'value' => 'select']);
+
+// Which paper is being transcribed. First control on the bar, because it
+// decides which table everything below it reads and writes - a member of staff
+// must never be able to type a stack of post-test papers into the pre-test
+// baseline without noticing.
+echo html_writer::tag('span', 'Assessment:', ['style' => 'font-weight:600; color:var(--al-ink-700);']);
+echo html_writer::start_tag('select', ['name' => 'phase', 'onchange' => 'this.form.submit()']);
+foreach (local_acculearnfeedback_test_phases() as $p) {
+    $sel = ($p->key === $phase->key) ? ['selected' => 'selected'] : [];
+    echo html_writer::tag('option', $p->label, array_merge(['value' => $p->key], $sel));
+}
+echo html_writer::end_tag('select');
+
 echo html_writer::tag('span', 'Student:', ['style' => 'font-weight:600; color:var(--al-ink-700);']);
 echo html_writer::start_tag('select', ['name' => 'userid', 'onchange' => 'this.form.submit()']);
 echo html_writer::tag('option', '-- select student --', ['value' => 0]);
@@ -224,17 +256,14 @@ if ($selecteduserid || $competencyid) {
 echo html_writer::end_div();
 
 if ($selecteduserid && $competencyid) {
-    $questionrows = $DB->get_records_sql("
-        SELECT q.id, q.name, q.questiontext
-        FROM {question} q
-        JOIN acculearn_question_competency qc ON qc.questionid = q.id
-        WHERE qc.competency_id = ?
-        ORDER BY q.id
-    ", [$competencyid]);
+    // Just the ten items that were on the paper, not the whole question bank -
+    // see local_acculearnfeedback_pretest_items() for why the bank maps 80-140
+    // rows to each competency.
+    $questionrows = local_acculearnfeedback_pretest_items($competencyid);
 
     $existingmap = [];
     $existingrows = $DB->get_records_sql(
-        "SELECT id, questionid, confidence, is_correct FROM acculearn_pretest_responses
+        "SELECT id, questionid, confidence, is_correct FROM {$phase->table}
           WHERE userid = ? AND competency_id = ?",
         [$selecteduserid, $competencyid]
     );
@@ -242,21 +271,55 @@ if ($selecteduserid && $competencyid) {
         $existingmap[$e->questionid] = $e;
     }
 
-    echo html_writer::start_div('al-card al-card--accent', ['style' => 'display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px;']);
-    echo html_writer::tag('p', count($questionrows) . ' questions available for this competency. Fill in ONLY the ones actually used on the paper pre-test; leave the rest blank.', ['style' => 'margin:0;']);
+    // The other phase's count, so staff can see at a glance whether this
+    // student's pre/post pair is complete without switching back and forth.
+    $otherphase = local_acculearnfeedback_test_phase($phase->key === 'pre' ? 'post' : 'pre');
+    $othercount = (int) $DB->get_field_sql(
+        "SELECT COUNT(*) FROM {$otherphase->table} WHERE userid = ? AND competency_id = ?",
+        [$selecteduserid, $competencyid]);
 
-    // A real POST+sesskey action (not a plain <a href> link) - this
-    // triggers a live OpenAI call and writes learning-track data, so it
-    // must not be triggerable by a bare GET request (which browsers issue
-    // automatically for things like <img>/<link> tags on any page, making
-    // an un-protected GET side effect a CSRF risk). It also reads the
-    // target student from the session rather than a query parameter, so
-    // it never needs to appear in generate_pretest_track.php's URL either.
-    echo html_writer::start_tag('form', ['method' => 'post', 'action' => new moodle_url('/local/acculearnfeedback/generate_pretest_track.php')]);
-    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
-    echo html_writer::empty_tag('input', ['type' => 'submit', 'value' => 'Generate Initial Track for this Student', 'class' => 'al-btn al-btn-success']);
-    echo html_writer::end_tag('form');
+    echo html_writer::start_div('al-card al-card--accent', ['style' => 'display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px;']);
+    $answered = 0;
+    foreach ($questionrows as $q) {
+        if (isset($existingmap[$q->id])) {
+            $answered++;
+        }
+    }
+    echo html_writer::tag('div',
+        html_writer::tag('span', $phase->label, ['class' => 'al-badge al-badge--pill',
+            'style' => 'margin-right:8px;']) .
+        'The ' . count($questionrows) . ' items from the paper ' . strtolower($phase->label)
+        . ', in paper order. '
+        . html_writer::tag('strong', $answered . ' of ' . count($questionrows))
+        . ' recorded for this student. '
+        . html_writer::tag('span',
+            $otherphase->label . ': ' . $othercount . ' of ' . count($questionrows) . ' recorded.',
+            ['style' => 'color:var(--al-ink-500);']),
+        ['style' => 'margin:0;']);
+
+    // Track generation belongs to the PRE-test only. The initial track is the
+    // student's baseline placement; the post-test is an end-point measurement
+    // taken after instruction, and re-deriving a "personalised path" from it
+    // would rewrite a student's guidance at the very moment the study is
+    // measuring them. The button is therefore hidden entirely in post mode
+    // rather than left to be clicked by mistake.
+    if ($phase->key === 'pre') {
+        // A real POST+sesskey action (not a plain <a href> link) - this
+        // triggers a live OpenAI call and writes learning-track data, so it
+        // must not be triggerable by a bare GET request (which browsers issue
+        // automatically for things like <img>/<link> tags on any page, making
+        // an un-protected GET side effect a CSRF risk). It also reads the
+        // target student from the session rather than a query parameter, so
+        // it never needs to appear in generate_pretest_track.php's URL either.
+        echo html_writer::start_tag('form', ['method' => 'post', 'action' => new moodle_url('/local/acculearnfeedback/generate_pretest_track.php')]);
+        echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
+        echo html_writer::empty_tag('input', ['type' => 'submit', 'value' => 'Generate Initial Track for this Student', 'class' => 'al-btn al-btn-success']);
+        echo html_writer::end_tag('form');
+    }
     echo html_writer::end_div();
+
+    echo html_writer::div($phase->blurb, 'al-card',
+        ['style' => 'font-size:0.9em; color:var(--al-ink-700); padding:12px 16px;']);
 
     echo html_writer::start_tag('form', ['method' => 'post', 'action' => $PAGE->url]);
     echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
@@ -271,12 +334,23 @@ if ($selecteduserid && $competencyid) {
         html_writer::tag('th', 'Confidence')
     );
 
+    // Numbered 1..10 down the page. The question bank's own names run
+    // 1-5 then 11-15, and printing those made a ten-row form appear to skip
+    // five items - a transcription screen should count the way the person
+    // transcribing counts. The bank name is kept as a tooltip so a row can
+    // still be traced back to its question when checking the mapping; the
+    // hidden questionid is what actually gets saved, so renumbering the label
+    // cannot move a response onto the wrong question.
+    $position = 0;
     foreach ($questionrows as $q) {
+        $position++;
         $prevconf = $existingmap[$q->id]->confidence ?? 0;
         $prevcorrect = isset($existingmap[$q->id]) ? $existingmap[$q->id]->is_correct : -1;
 
         echo html_writer::start_tag('tr');
-        echo html_writer::tag('td', s($q->name) .
+        echo html_writer::tag('td',
+            html_writer::tag('span', 'Question ' . $position,
+                ['title' => 'Question bank item: ' . s($q->name)]) .
             html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'questionid[]', 'value' => $q->id])
         );
         echo html_writer::tag('td', s(strip_tags($q->questiontext)), ['style' => 'max-width:350px;']);

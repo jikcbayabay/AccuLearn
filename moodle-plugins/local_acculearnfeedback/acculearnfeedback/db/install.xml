@@ -145,6 +145,26 @@
       </INDEXES>
     </TABLE>
 
+    <TABLE NAME="acculearn_posttest_responses" COMMENT="One manually-entered paper POST-test response for one student/question. Deliberately a separate table from acculearn_pretest_responses rather than a 'phase' column on it: that table carries a UNIQUE(userid, questionid) index, so a post-test answer to the same question would collide with - and its ON DUPLICATE KEY UPDATE would silently OVERWRITE - the student's pre-test answer, destroying the baseline the whole pre/post comparison depends on. Same columns as the pre-test table so the two can be compared directly.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="20" NOTNULL="true"/>
+        <FIELD NAME="questionid" TYPE="int" LENGTH="20" NOTNULL="true"/>
+        <FIELD NAME="competency_id" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="confidence" TYPE="int" LENGTH="4" NOTNULL="true"/>
+        <FIELD NAME="is_correct" TYPE="int" LENGTH="4" NOTNULL="true"/>
+        <FIELD NAME="entered_at" TYPE="int" LENGTH="20" NOTNULL="true"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="userid" UNIQUE="false" FIELDS="userid"/>
+        <INDEX NAME="competency_id" UNIQUE="false" FIELDS="competency_id"/>
+        <INDEX NAME="userid_questionid" UNIQUE="true" FIELDS="userid, questionid"/>
+      </INDEXES>
+    </TABLE>
+
     <TABLE NAME="acculearn_usage_log" COMMENT="System usage/engagement events for the research instrument described in the thesis's Section 3.5.3/3.8.7 (frequency of use, module access, quiz submissions, feedback/track generation and views).">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>

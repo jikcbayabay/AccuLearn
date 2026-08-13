@@ -13,9 +13,23 @@ class observer {
         $quba = \question_engine::load_questions_usage_by_activity($attempt->uniqueid);
 
         foreach ($quba->get_slots() as $slot) {
-            $qa         = $quba->get_question_attempt($slot);
-            $laststep   = $qa->get_last_step();
-            $confidence = $laststep->get_qt_var('confidence');
+            $qa = $quba->get_question_attempt($slot);
+            // get_last_qt_var() searches BACKWARDS through every step for the
+            // most recent value; get_last_step()->get_qt_var() reads only the
+            // final step, which is not where the rating lives.
+            //
+            // A submitted question ends up with three steps: 'todo', then
+            // 'complete' carrying answer+confidence, then a grading step
+            // ('gradedright'/'gradedwrong') whose only variable is '-finish'.
+            // Reading the last step therefore returns null the moment that
+            // grading step has been appended - and whether it has, by the time
+            // this observer runs, is timing-dependent. It usually had not been,
+            // so this usually worked; on 5 of the 139 attempts on this site it
+            // had been, and every one of those students' confidence ratings was
+            // silently dropped. Their answers still graded normally, so nothing
+            // looked wrong: the attempt simply produced no CBM evidence, no
+            // AI feedback, and contributed nothing to CM/CMI/GI.
+            $confidence = $qa->get_last_qt_var('confidence');
 
             if ($confidence !== null && in_array((int)$confidence, [1, 2, 3], true)) {
                 $record = (object)[

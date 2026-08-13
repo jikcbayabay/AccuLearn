@@ -8,8 +8,23 @@ class TrackEngine {
 
     private $mastery;
 
+    /** Whether the most recent generateTrack() actually wrote a new track. */
+    private $laststored = false;
+
     public function __construct() {
         $this->mastery = new MasteryEngine();
+    }
+
+    /**
+     * True when the last generateTrack() call really rewrote the stored track,
+     * false when it returned the existing one unchanged.
+     *
+     * Callers log "learning track recalculated" for the student; that log is a
+     * research instrument, so it must not record a recalculation that was
+     * skipped as identical.
+     */
+    public function lastRunStoredTrack() {
+        return $this->laststored;
     }
 
     /**
@@ -24,19 +39,41 @@ class TrackEngine {
      * come out materially the same.
      */
     public function generateTrack($userid, $studentName, $source = 'quiz') {
+        $this->laststored = false;
+
         $fullTrack = $this->mastery->computeFullTrack($userid, $source);
         $signature = $this->evidenceSignature($fullTrack);
 
+        $previousNarrative = null;
         $existing = $this->getStoredTrack($userid);
         if ($existing) {
             $previous = json_decode($existing->track_json, true);
+            $previousNarrative = $previous['narrative'] ?? null;
             $previousSignature = $this->evidenceSignature($previous['competencies'] ?? []);
             if ($previousSignature === $signature) {
                 return $previous;
             }
         }
 
-        $narrative = $this->generateNarrative($studentName, $fullTrack, $source);
+        // A failed narrative call must not cost the student their refreshed
+        // FACTS. Previously any exception here (an OpenAI rate limit is the
+        // common one) aborted the whole update, so the stored per-quiz
+        // checklist and mastery figures stayed at their old values until some
+        // later submission happened to succeed. The prose is the only part
+        // that actually needs OpenAI, so it falls back to the last narrative
+        // and the recomputed competencies are stored regardless. With no
+        // previous narrative to fall back on there is nothing to store, so
+        // the error still propagates to the caller.
+        try {
+            $narrative = $this->generateNarrative($studentName, $fullTrack, $source);
+        } catch (Exception $e) {
+            if (!is_array($previousNarrative) || empty($previousNarrative)) {
+                throw $e;
+            }
+            error_log('AccuLearn: keeping previous track narrative for user ' . $userid
+                . ' after narrative generation failed: ' . $e->getMessage());
+            $narrative = $previousNarrative;
+        }
 
         $record = [
             'competencies' => $fullTrack,
@@ -51,16 +88,29 @@ class TrackEngine {
             ON DUPLICATE KEY UPDATE track_json = VALUES(track_json), generated_at = VALUES(generated_at)
         ");
         $stmt->execute([$userid, json_encode($record), time()]);
+        $this->laststored = true;
 
         return $record;
     }
 
     /**
      * Reduces a full track to just the fields that should trigger a
-     * regeneration if they change (mastery classification and assigned
-     * pathway per competency) - CM/CMI/GI can shift slightly between
+     * regeneration if they change (mastery classification, assigned pathway,
+     * and per-quiz pass status) - CM/CMI/GI can shift slightly between
      * attempts without crossing a mastery/LP boundary, and that shouldn't
      * be enough to re-narrate the track.
+     *
+     * PER-QUIZ STATUS IS PART OF THE SIGNATURE, and has to be. Without it the
+     * stored checklist froze: a student who passed a formative quiz did not
+     * necessarily move any mastery band (still "Developing" until the
+     * summative is passed too), did not change LP (still 3), and did not
+     * change priority group (still "next") - so the signature matched, the
+     * write was skipped, and their track went on displaying that quiz as
+     * "not taken" indefinitely. Real case on this site: user 6's Formative
+     * Quiz 3 was sat on 7 Aug and regraded to a pass on 9 Aug, yet the track
+     * still showed it untaken on 10 Aug, because no intervening change ever
+     * crossed a band boundary. Quiz pass status is exactly the thing the
+     * checklist renders, so it is exactly what must be able to invalidate it.
      */
     private function evidenceSignature($fullTrack) {
         $sig = [];
@@ -73,10 +123,20 @@ class TrackEngine {
             // It also means tracks stored before adaptive ordering existed
             // have no priority_group, so their signature differs and they
             // regenerate once, automatically, on the next trigger.
+            $quizzes = [];
+            foreach (($t['quizzes'] ?? []) as $q) {
+                $quizzes[(int) $q['id']] = [
+                    !empty($q['attempted']) ? 1 : 0,
+                    !empty($q['passed']) ? 1 : 0,
+                ];
+            }
+            ksort($quizzes);
+
             $sig[$t['competency_id']] = [
                 $t['mastery'] ?? null,
                 $t['lp'] ?? null,
                 $t['priority_group'] ?? null,
+                $quizzes,
             ];
         }
         ksort($sig);

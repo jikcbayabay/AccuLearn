@@ -52,10 +52,19 @@ class generate_feedback_task extends \core\task\adhoc_task {
                 mtrace("AccuLearn: refreshing learning track for user {$attempt->userid}");
                 try {
                     $trackEngine->generateTrack($attempt->userid, $studentName);
-                    mtrace("AccuLearn: track refresh done");
-                    local_acculearnfeedback_log_usage($attempt->userid, 'track_generated',
-                        'track', null,
-                        'Learning track recalculated from quiz performance');
+                    // Only record a recalculation that actually happened. The
+                    // engine returns the existing track unchanged when the new
+                    // evidence is identical, and logging that as a
+                    // recalculation inflated the engagement figures the study
+                    // reports with events that never occurred.
+                    if ($trackEngine->lastRunStoredTrack()) {
+                        mtrace("AccuLearn: track refresh done");
+                        local_acculearnfeedback_log_usage($attempt->userid, 'track_generated',
+                            'track', null,
+                            'Learning track recalculated from quiz performance');
+                    } else {
+                        mtrace("AccuLearn: track unchanged for user {$attempt->userid}, not rewritten");
+                    }
                 } catch (\Exception $e) {
                     // E.g. the OpenAI rate limit was hit. Swallowed rather than
                     // rethrown - this student's NEXT quiz submission will

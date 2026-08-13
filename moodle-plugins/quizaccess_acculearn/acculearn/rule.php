@@ -44,17 +44,55 @@ class quizaccess_acculearn extends access_rule_base {
             return false;
         }
 
+        // The mastery engine is optional here. The prerequisite, summative and
+        // restudy gates below all need it and fail OPEN without it (better a
+        // missed gate than every student locked out of every quiz), but the
+        // lesson gate in between needs nothing from it - "did you study the
+        // material" is answered by Moodle's own SCORM tracking - so it is
+        // written to still hold when the backend is unreachable.
+        $engine = null;
         $backendpath = '/var/www/html/acculearn-backend/mastery_engine.php';
-        if (!file_exists($backendpath)) {
-            return false; // Backend unavailable, fail open rather than blocking everyone.
+        if (file_exists($backendpath)) {
+            require_once($backendpath);
+            $engine = new MasteryEngine();
+
+            // Checked FIRST, because it is the widest gate: when an earlier
+            // competency has not been mastered, this whole course is shut and
+            // "go and do the lesson" would be misleading advice - the lesson
+            // itself may be restricted by the AccuLearn Unlocked group.
+            $result = $engine->computeLearningPathway($USER->id, $competencyid, 'quiz');
+            if ($result['lp'] === 1) {
+                return get_string('prerequisiteblocked', 'quizaccess_acculearn');
+            }
         }
 
-        require_once($backendpath);
-        $engine = new MasteryEngine();
-        $result = $engine->computeLearningPathway($USER->id, $competencyid, 'quiz');
+        // Lesson gate: a FORMATIVE quiz stays locked until the lesson taught
+        // alongside it has been worked through.
+        //
+        // Every one of the seven courses is built the same way - each section
+        // holds exactly one SCORM lesson and the one formative quiz that
+        // practises it (verified across all 26 formative quizzes; not one of
+        // them sits in a section without a lesson). So "the material for this
+        // quiz" is unambiguous: it is the lesson in the quiz's own section.
+        // Deliberately per-section rather than per-course, so a student can
+        // practise topic A as soon as they have studied A, instead of having
+        // to finish B and C first.
+        //
+        // Applied to formatives only. The summative is already gated on
+        // passing every formative, which transitively requires every lesson,
+        // so gating it here as well would only produce a worse message.
+        if (stripos($this->quiz->name, 'summative') === false) {
+            $lesson = $this->outstanding_lesson();
+            if ($lesson) {
+                $a = new stdClass();
+                $a->lesson = format_string($lesson->name);
+                $a->lessonurl = (new moodle_url('/mod/scorm/view.php', ['id' => $lesson->cmid]))->out(false);
+                return get_string('lessonblocked', 'quizaccess_acculearn', $a);
+            }
+        }
 
-        if ($result['lp'] === 1) {
-            return get_string('prerequisiteblocked', 'quizaccess_acculearn');
+        if ($engine === null) {
+            return false; // Backend unavailable; the gates below cannot be evaluated.
         }
 
         // Summative gate: the summative assessment for a competency stays
@@ -115,6 +153,61 @@ class quizaccess_acculearn extends access_rule_base {
         }
 
         return false;
+    }
+
+    /**
+     * The lesson this quiz practises, if the student has not finished it yet.
+     *
+     * "Finished" means the SCORM package itself reported the student done -
+     * cmi.core.lesson_status (SCORM 1.2) or cmi.completion_status (SCORM 2004)
+     * coming back as completed/passed. Merely opening the package does NOT
+     * count: the point of the gate is that the material was worked through,
+     * and a launch record only proves a page was opened and could be closed a
+     * second later. Every lesson package on this site is a single SCO, so one
+     * completed status IS the whole lesson finished - there is no partially
+     * completed multi-SCO case to reason about here.
+     *
+     * Fails OPEN in every uncertain case: a section with no lesson in it, a
+     * hidden lesson, an unreadable module. A student must never be locked out
+     * of a quiz by a course structure this rule did not recognise.
+     *
+     * @return stdClass|null {cmid, name} of the unfinished lesson, or null if
+     *   there is nothing outstanding.
+     */
+    private function outstanding_lesson() {
+        global $DB, $USER;
+
+        $cm = $this->quizobj->get_cm();
+        if (empty($cm->section)) {
+            return null;
+        }
+
+        // Visible lessons only - a teacher who hides a lesson has taken it out
+        // of the course, and it must not go on blocking the quiz beside it.
+        $lessons = $DB->get_records_sql("
+            SELECT cm.id AS cmid, s.id AS scormid, s.name
+              FROM {course_modules} cm
+              JOIN {modules} m ON m.id = cm.module AND m.name = 'scorm'
+              JOIN {scorm} s ON s.id = cm.instance
+             WHERE cm.section = ? AND cm.visible = 1 AND cm.deletioninprogress = 0
+          ORDER BY cm.id", [$cm->section]);
+
+        foreach ($lessons as $lesson) {
+            $finished = $DB->record_exists_sql("
+                SELECT 1
+                  FROM {scorm_attempt} a
+                  JOIN {scorm_scoes_value} v ON v.attemptid = a.id
+                  JOIN {scorm_element} e ON e.id = v.elementid
+                 WHERE a.scormid = ? AND a.userid = ?
+                   AND e.element IN ('cmi.core.lesson_status', 'cmi.completion_status')
+                   AND v.value IN ('completed', 'passed')",
+                [$lesson->scormid, $USER->id]);
+            if (!$finished) {
+                return $lesson;
+            }
+        }
+
+        return null;
     }
 
     /**
