@@ -38,6 +38,7 @@ $sql = "
         qas.slot       AS question_number,
         que.id         AS question_id,
         que.name       AS question_name,
+        qcm.competency_id,
         qasdata.value  AS selected_answer,
         CASE laststep.state
             WHEN 'gradedright' THEN 'Correct'
@@ -57,6 +58,10 @@ $sql = "
     JOIN {user} u ON u.id = qbc.userid
     JOIN {question_attempts} qas ON qas.id = qbc.questionattemptid
     JOIN {question} que ON que.id = qas.questionid
+    -- Legacy UNPREFIXED table, hence the literal name. Carrying competency on
+    -- every row is what makes the per-competency confidence/correctness
+    -- cross-tabulation possible for quiz and pre-test data alike.
+    LEFT JOIN acculearn_question_competency qcm ON qcm.questionid = que.id
     LEFT JOIN {question_attempt_steps} laststep
         ON laststep.id = (
             SELECT id FROM {question_attempt_steps}
@@ -76,6 +81,40 @@ $sql = "
     ORDER BY u.id, qa.attempt, qas.slot
 ";
 
+// The paper pre-test is the BASELINE instrument for the whole quasi-experiment,
+// and until now it had no export path anywhere in the system - this file read
+// {qbehaviour_confidence} only, i.e. quiz attempts. That left the required
+// "frequency distributions for each confidence level" and "cross-tabulation of
+// confidence and correctness" producible for post-intervention data but not for
+// baseline, which would have had to be read out of the database by hand.
+//
+// Kept as a separate query rather than a UNION: acculearn_pretest_responses is
+// one of the LEGACY UNPREFIXED tables, so it is referenced by its literal name
+// while the Moodle tables go through {...} expansion, and the two row shapes
+// only partly overlap (a transcribed paper response has no attempt number, no
+// slot, and no stored answer text - only correctness and confidence).
+$pretestsql = "
+    SELECT
+        p.id           AS confidence_id,
+        u.id           AS student_id,
+        u.firstname,
+        u.lastname,
+        que.id         AS question_id,
+        que.name       AS question_name,
+        p.competency_id,
+        CASE WHEN p.is_correct = 1 THEN 'Correct' ELSE 'Incorrect' END AS result,
+        CASE p.confidence
+            WHEN 1 THEN 'Low'
+            WHEN 2 THEN 'Medium'
+            WHEN 3 THEN 'High'
+        END AS confidence_level,
+        FROM_UNIXTIME(p.entered_at) AS submitted_at
+    FROM acculearn_pretest_responses p
+    JOIN {user} u ON u.id = p.userid
+    LEFT JOIN {question} que ON que.id = p.questionid
+    ORDER BY u.id, p.competency_id, p.questionid
+";
+
 $recordset = $DB->get_recordset_sql($sql);
 
 header('Content-Type: text/csv; charset=utf-8');
@@ -84,34 +123,58 @@ header('Content-Disposition: attachment; filename="confidence_export'
 
 $out = fopen('php://output', 'w');
 
+// "Source" distinguishes baseline from post-intervention rows, which is the
+// whole reason both are in one file. The timestamp column is deliberately
+// labelled for both meanings: for a quiz row it is when the student answered,
+// but for a pre-test row it is when a staff member TRANSCRIBED the paper
+// response, which can be days later. Reading the latter as a response time
+// would be wrong, so the header says so rather than leaving it to be assumed.
 if ($revealnames) {
-    fputcsv($out, ['Student ID', 'First Name', 'Last Name', 'Quiz', 'Attempt',
-                   'Q#', 'Question ID', 'Question Name', 'Answer', 'Result',
-                   'Confidence', 'Submitted At'], ',', '"', '\\');
+    fputcsv($out, ['Source', 'Student ID', 'First Name', 'Last Name', 'Quiz', 'Attempt',
+                   'Q#', 'Question ID', 'Question Name', 'Competency', 'Answer', 'Result',
+                   'Confidence', 'Submitted / Entered At'], ',', '"', '\\');
 } else {
-    fputcsv($out, ['Pseudonym', 'Quiz', 'Attempt',
-                   'Q#', 'Question ID', 'Question Name', 'Answer', 'Result',
-                   'Confidence', 'Submitted At'], ',', '"', '\\');
+    fputcsv($out, ['Source', 'Pseudonym', 'Quiz', 'Attempt',
+                   'Q#', 'Question ID', 'Question Name', 'Competency', 'Answer', 'Result',
+                   'Confidence', 'Submitted / Entered At'], ',', '"', '\\');
 }
 
-foreach ($recordset as $r) {
-    if ($revealnames) {
-        $row = [
-            $r->student_id, $r->firstname, $r->lastname, $r->quiz_name,
-            $r->attempt, $r->question_number, $r->question_id, $r->question_name,
-            $r->selected_answer, $r->result, $r->confidence_level, $r->submitted_at,
-        ];
-    } else {
+/**
+ * Emit one CSV row under whichever identification mode is active, so the
+ * pseudonymisation and CSV-injection sanitisation cannot drift apart between
+ * the quiz and pre-test loops.
+ */
+$writerow = function($source, $r, $quizname, $attempt, $slot, $answer)
+        use ($out, $revealnames) {
+    $ident = $revealnames
+        ? [$r->student_id, $r->firstname, $r->lastname]
         // No student_id either: the numeric id is itself a re-identifier
         // when combined with any other export or the Moodle UI.
-        $row = [
-            local_acculearnfeedback_pseudonym($r->student_id), $r->quiz_name,
-            $r->attempt, $r->question_number, $r->question_id, $r->question_name,
-            $r->selected_answer, $r->result, $r->confidence_level, $r->submitted_at,
-        ];
-    }
-    fputcsv($out, local_acculearnfeedback_csv_row($row), ',', '"', '\\');
-}
+        : [local_acculearnfeedback_pseudonym($r->student_id)];
 
+    $row = array_merge([$source], $ident, [
+        $quizname, $attempt, $slot, $r->question_id, $r->question_name,
+        $r->competency_id ?? '', $answer, $r->result, $r->confidence_level,
+        $r->submitted_at,
+    ]);
+
+    fputcsv($out, local_acculearnfeedback_csv_row($row), ',', '"', '\\');
+};
+
+foreach ($recordset as $r) {
+    $writerow('quiz', $r, $r->quiz_name, $r->attempt, $r->question_number,
+        $r->selected_answer);
+}
 $recordset->close();
+
+// Baseline rows last, so an analyst reading the file top-down sees the
+// familiar quiz export unchanged before the newly added pre-test block.
+$pretestset = $DB->get_recordset_sql($pretestsql);
+foreach ($pretestset as $r) {
+    // A transcribed paper response carries no attempt, no slot and no stored
+    // answer text - only correctness and confidence were ever recorded.
+    $writerow('pretest', $r, 'Pre-test (paper)', '', '', '');
+}
+$pretestset->close();
+
 fclose($out);

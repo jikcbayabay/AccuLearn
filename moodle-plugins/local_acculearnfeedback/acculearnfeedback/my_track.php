@@ -58,6 +58,31 @@ if (!is_array($track) || empty($track['competencies'])) {
 $narrative = $track['narrative'] ?? [];
 $competencies = $track['competencies'];
 
+// Same teacher-override rule as view.php: a flagged track must stop showing
+// its AI prose, or flagging changes nothing the student actually reads. Only
+// the narrative is withheld - everything below it is recomputed from live
+// mastery data rather than generated, so suppressing it would hide the
+// student's real progress for no reason.
+$narrativeflagged = !empty($trackrow->flagged);
+if ($narrativeflagged) {
+    $narrative = [];
+}
+
+// The stored track is a SNAPSHOT, rewritten only when its evidence signature
+// changes - so its per-quiz checklist and mastery figures can lag the real
+// gradebook (a quiz regraded outside a submission, or a formative passed
+// without moving a mastery band, both leave it behind). Everything below the
+// narrative is deterministic and cheap to recompute, so it is recomputed here
+// against live data; only the AI prose comes from storage. Falls back to the
+// snapshot if the backend is unavailable.
+$live = local_acculearnfeedback_live_competencies($USER->id, $track['source'] ?? 'quiz');
+if ($live) {
+    $competencies = $live;
+}
+
+// Each competency is its own Moodle course, so its name links to the material.
+$courselinks = local_acculearnfeedback_competency_courses();
+
 echo html_writer::start_div('al-page');
 
 // Anonymization badge: shows the student their own pseudonym so they can
@@ -75,6 +100,12 @@ echo html_writer::tag('p', s($narrative['overview'] ?? ''));
 echo html_writer::tag('h5', '<i class="fa fa-bullseye" aria-hidden="true"></i>What to focus on next');
 echo html_writer::tag('p', s($narrative['next_focus'] ?? ''));
 echo html_writer::tag('p', s($narrative['encouragement'] ?? ''), ['style' => 'font-style:italic; color:var(--al-blue);']);
+// The prose is only rewritten when the student's evidence materially changes,
+// while the cards below are recomputed live on every view. Dating the summary
+// keeps that difference honest rather than implying both were written now.
+echo html_writer::tag('div',
+    'Summary written ' . userdate($trackrow->generated_at, get_string('strftimedatetimeshort')),
+    ['style' => 'color:var(--al-ink-500); font-size:0.8em; margin-top:10px;']);
 echo html_writer::end_div();
 
 // Competency cards, grouped by the adaptive priority the mastery engine
@@ -183,7 +214,24 @@ foreach ($groups as $key => $group) {
                 ['style' => 'margin-bottom:6px; display:inline-block;']);
             echo html_writer::empty_tag('br');
         }
-        echo html_writer::tag('strong', s($c['competency_name']), ['style' => 'font-size:1.05em;']);
+        // The competency name doubles as the way INTO the material: each
+        // competency is its own Moodle course, and a student reading "do this
+        // next" should not then have to go hunting for the course by hand.
+        // Falls back to plain text when the course is unmapped or not open to
+        // them, so the link never leads to an access error.
+        $title = html_writer::tag('strong', s($c['competency_name']), ['style' => 'font-size:1.05em;']);
+        $courselink = $courselinks[$c['competency_id']] ?? null;
+        if ($courselink) {
+            echo html_writer::link($courselink->url,
+                $title . '<i class="fa fa-chevron-right" aria-hidden="true"></i>',
+                [
+                    'class' => 'al-course-link',
+                    'aria-label' => 'Open the course: ' . $c['competency_name'],
+                    'title' => 'Open ' . $courselink->fullname,
+                ]);
+        } else {
+            echo $title;
+        }
         // Always show what the percentage was computed from. A bare "50%"
         // hides whether that came from 1 item or 20, which is exactly the
         // difference between a meaningful result and noise.
@@ -224,7 +272,28 @@ foreach ($groups as $key => $group) {
                     $cls = 'al-badge al-badge--neutral';
                     $note = ' locked until formatives passed';
                 }
-                echo html_writer::tag('span', $icon . s($q['name']) . s($note), ['class' => $cls]);
+                // A formative held shut by its lesson says so, and names the
+                // lesson. Without this it read as merely "not taken", which
+                // sends the student to a quiz that will refuse them.
+                $lessonlink = null;
+                if (!empty($q['lesson_locked']) && !$q['passed']) {
+                    $icon = '<i class="fa fa-lock" aria-hidden="true"></i> ';
+                    $cls = 'al-badge al-badge--neutral';
+                    $note = ' finish the lesson first';
+                    if (!empty($q['lesson_cmid'])) {
+                        $lessonlink = new moodle_url('/mod/scorm/view.php', ['id' => $q['lesson_cmid']]);
+                    }
+                }
+                $badge = html_writer::tag('span', $icon . s($q['name']) . s($note), ['class' => $cls]);
+                if ($lessonlink) {
+                    $badge = html_writer::link($lessonlink, $badge, [
+                        'class' => 'al-course-link',
+                        'title' => 'Open the lesson: ' . $q['lesson_name'],
+                        'aria-label' => s($q['name']) . ' is locked - open the lesson '
+                            . $q['lesson_name'] . ' to unlock it',
+                    ]);
+                }
+                echo $badge;
             }
             echo html_writer::end_div();
         }

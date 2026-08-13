@@ -33,6 +33,18 @@ class MasteryEngine {
     const MIN_ITEMS_FOR_MASTERY = 8;
 
     /**
+     * Per-request memo for competencyQuizStatus(), keyed "userid:competencyid".
+     *
+     * The same status gets asked for repeatedly inside one request:
+     * computeLearningPathway() reads a competency's own status AND (via
+     * checkPrerequisite) the status of the competency before it, so a full
+     * 7-competency track recomputed ~13 identical status queries. Scoped to
+     * the instance, so a gradebook change part-way through a request can
+     * never be masked by a stale entry from an earlier request.
+     */
+    private $quizstatuscache = [];
+
+    /**
      * Per-quiz pass status for every quiz belonging to a competency.
      *
      * A competency is Mastered only when EVERY formative quiz AND the
@@ -51,6 +63,15 @@ class MasteryEngine {
      * chain.
      */
     public function competencyQuizStatus($userid, $competencyId) {
+        $key = (int) $userid . ':' . (int) $competencyId;
+        if (!array_key_exists($key, $this->quizstatuscache)) {
+            $this->quizstatuscache[$key] = $this->readCompetencyQuizStatus($userid, $competencyId);
+        }
+        return $this->quizstatuscache[$key];
+    }
+
+    /** Uncached body of competencyQuizStatus(). */
+    private function readCompetencyQuizStatus($userid, $competencyId) {
         $db = get_db();
 
         $stmt = $db->prepare("
@@ -83,6 +104,8 @@ class MasteryEngine {
             return $empty;
         }
 
+        $lessonlocks = $this->lessonLocks($userid, $comp->courseid);
+
         $quizzes = [];
         $formatives = [];
         $summatives = [];
@@ -104,6 +127,14 @@ class MasteryEngine {
                 'gradepass' => round((float) $r->gradepass, 2),
                 'attempted' => $r->finalgrade !== null,
                 'passed' => $passed,
+                // Mirrors quizaccess_acculearn's lesson gate so the track and
+                // the quiz page can never tell the student different stories
+                // about why a quiz is not open yet. Summatives are excluded
+                // for the same reason they are there: they are gated on the
+                // formatives, which are themselves gated on the lessons.
+                'lesson_locked' => !$issummative && isset($lessonlocks[(int) $r->id]),
+                'lesson_name' => $issummative ? null : ($lessonlocks[(int) $r->id]->name ?? null),
+                'lesson_cmid' => $issummative ? null : ($lessonlocks[(int) $r->id]->cmid ?? null),
             ];
             $quizzes[] = $q;
             if ($issummative) { $summatives[] = $q; } else { $formatives[] = $q; }
@@ -130,6 +161,64 @@ class MasteryEngine {
             'passed_count' => $passedcount,
             'total_count' => count($quizzes),
         ];
+    }
+
+    /**
+     * Quizzes in a course whose lesson the student has not finished yet.
+     *
+     * The read-only counterpart to quizaccess_acculearn's lesson gate: each
+     * course section pairs one SCORM lesson with one formative quiz, and the
+     * quiz does not open until the package reports the student completed it
+     * (SCORM 1.2 cmi.core.lesson_status / SCORM 2004 cmi.completion_status).
+     * Reported here so the learning track can say WHICH lesson is holding a
+     * quiz shut, instead of leaving it looking merely untaken.
+     *
+     * Hidden lessons are ignored, matching the rule - a lesson a teacher took
+     * out of the course must not go on blocking the quiz beside it.
+     *
+     * @return stdClass[] keyed by quiz id, each {cmid, name} of the first
+     *   unfinished lesson in that quiz's section. Quizzes whose lesson is done
+     *   (or that have no lesson) are simply absent.
+     */
+    private function lessonLocks($userid, $courseid) {
+        $db = get_db();
+        $stmt = $db->prepare("
+            SELECT q.id AS quizid, cms.id AS lessoncmid, s.name AS lessonname,
+                   MAX(CASE WHEN e.element IN ('cmi.core.lesson_status', 'cmi.completion_status')
+                             AND v.value IN ('completed', 'passed') THEN 1 ELSE 0 END) AS finished
+              FROM mdl_quiz q
+              JOIN mdl_modules mq ON mq.name = 'quiz'
+              JOIN mdl_course_modules cmq
+                ON cmq.instance = q.id AND cmq.module = mq.id AND cmq.deletioninprogress = 0
+              JOIN mdl_modules ms ON ms.name = 'scorm'
+              JOIN mdl_course_modules cms
+                ON cms.section = cmq.section AND cms.module = ms.id
+               AND cms.visible = 1 AND cms.deletioninprogress = 0
+              JOIN mdl_scorm s ON s.id = cms.instance
+         LEFT JOIN mdl_scorm_attempt a ON a.scormid = s.id AND a.userid = ?
+         LEFT JOIN mdl_scorm_scoes_value v ON v.attemptid = a.id
+         LEFT JOIN mdl_scorm_element e ON e.id = v.elementid
+             WHERE q.course = ?
+          GROUP BY q.id, cms.id, s.name
+          ORDER BY q.id, cms.id");
+        $stmt->execute([$userid, $courseid]);
+
+        $locks = [];
+        foreach ($stmt->fetchAll() as $r) {
+            if ((int) $r->finished === 1) {
+                continue;
+            }
+            // First unfinished lesson in the section wins, matching the rule,
+            // which returns the first one it finds in the same order.
+            if (isset($locks[(int) $r->quizid])) {
+                continue;
+            }
+            $lock = new stdClass();
+            $lock->cmid = (int) $r->lessoncmid;
+            $lock->name = $r->lessonname;
+            $locks[(int) $r->quizid] = $lock;
+        }
+        return $locks;
     }
 
     /**
@@ -371,7 +460,12 @@ class MasteryEngine {
         switch ($lp) {
             case 1: return 'Prerequisite Review';
             case 2: return 'Guided Remediation';
-            case 3: return 'Guided Remediation';
+            // LP=3 is the Developing (75-84%) branch and the high-GI branch,
+            // both of which trigger reinforcement practice rather than
+            // remediation. It previously carried LP=2's label verbatim, so a
+            // student scoring under 75% and a student scoring 85%+ while
+            // guessing saw identical wording and could not tell the two apart.
+            case 3: return 'Reinforcement Practice';
             case 4: return 'Advancement to Next Competency';
             default: return 'Not Yet Assessed';
         }
@@ -386,6 +480,10 @@ class MasteryEngine {
             $result = $this->computeLearningPathway($userid, $c->id, $source);
             $result['competency_name'] = $c->name;
             $result['sequence'] = (int) $c->sequence;
+            // Each competency IS a Moodle course here, so carrying the course
+            // id lets the student's track link straight to the material rather
+            // than only naming it.
+            $result['courseid'] = $c->courseid === null ? null : (int) $c->courseid;
             $track[] = $result;
         }
         return $this->prioritize($track);
