@@ -4,15 +4,15 @@
 export const mockDelay = (data, ms = 300) => new Promise(res => setTimeout(() => res(data), ms));
 
 export const USERS = [
-  { id: 'u1', name: 'Maria Santos',     email: 'maria.s@acculearn.ph',   role: 'student', section: 'ABM 11-A', joined: '2025-08-12', active: true },
-  { id: 'u2', name: 'Juan Dela Cruz',   email: 'juan.dc@acculearn.ph',   role: 'student', section: 'ABM 11-A', joined: '2025-08-12', active: true },
-  { id: 'u3', name: 'Ella Reyes',       email: 'ella.r@acculearn.ph',    role: 'student', section: 'ABM 11-B', joined: '2025-08-14', active: true },
-  { id: 'u4', name: 'Marco Villanueva', email: 'marco.v@acculearn.ph',   role: 'student', section: 'ABM 11-B', joined: '2025-08-14', active: false },
-  { id: 'u5', name: 'Patricia Lim',     email: 'patricia.l@acculearn.ph',role: 'student', section: 'ABM 11-A', joined: '2025-08-15', active: true },
-  { id: 'u6', name: 'Daniel Cruz',      email: 'daniel.c@acculearn.ph',  role: 'student', section: 'ABM 11-C', joined: '2025-08-15', active: true },
-  { id: 'u7', name: 'Ms. Andrea Torres',email: 'a.torres@acculearn.ph',  role: 'teacher', section: 'ABM 11-A', joined: '2025-06-01', active: true },
-  { id: 'u8', name: 'Mr. Robert Yu',    email: 'r.yu@acculearn.ph',      role: 'teacher', section: 'ABM 11-B', joined: '2025-06-01', active: true },
-  { id: 'u9', name: 'Admin Office',     email: 'admin@acculearn.ph',     role: 'admin',   section: '—',        joined: '2025-05-01', active: true },
+  { id: 'u1', name: 'Maria Santos',     email: 'maria.s@acculearn.ph',   role: 'student', section: 'ABM 11-A', joined: '2026-07-10', active: true },
+  { id: 'u2', name: 'Juan Dela Cruz',   email: 'juan.dc@acculearn.ph',   role: 'student', section: 'ABM 11-A', joined: '2026-07-10', active: true },
+  { id: 'u3', name: 'Ella Reyes',       email: 'ella.r@acculearn.ph',    role: 'student', section: 'ABM 11-B', joined: '2026-07-13', active: true },
+  { id: 'u4', name: 'Marco Villanueva', email: 'marco.v@acculearn.ph',   role: 'student', section: 'ABM 11-B', joined: '2026-07-13', active: false },
+  { id: 'u5', name: 'Patricia Lim',     email: 'patricia.l@acculearn.ph',role: 'student', section: 'ABM 11-A', joined: '2026-07-30', active: true },
+  { id: 'u6', name: 'Daniel Cruz',      email: 'daniel.c@acculearn.ph',  role: 'student', section: 'ABM 11-C', joined: '2026-07-15', active: true },
+  { id: 'u7', name: 'Ms. Andrea Torres',email: 'a.torres@acculearn.ph',  role: 'teacher', section: 'ABM 11-A', joined: '2026-07-08', active: true },
+  { id: 'u8', name: 'Mr. Robert Yu',    email: 'r.yu@acculearn.ph',      role: 'teacher', section: 'ABM 11-B', joined: '2026-07-08', active: true },
+  { id: 'u9', name: 'Admin Office',     email: 'admin@acculearn.ph',     role: 'admin',   section: '—',        joined: '2026-07-06', active: true },
 ];
 
 export const MODULES = [
@@ -141,7 +141,7 @@ export const FEEDBACK = [
       'Try the flashcard set on temporary vs. permanent accounts.',
     ],
     summary: 'Maria shows solid grasp of the accounting equation but is over-confident on entries involving equity and revenue. Suggested re-practice before moving to posting.',
-    generatedAt: '2026-05-04 14:21',
+    generatedAt: '2026-08-01 14:21',
   },
   {
     id: 'f2', studentId: 'u2', studentName: 'Juan Dela Cruz', module: 'Business Mathematics',
@@ -150,7 +150,7 @@ export const FEEDBACK = [
     mistakes: ['Computed trade discount on net price instead of list price (Q4).'],
     suggestions: ['Re-read worked example 4.3 on trade discount sequencing.'],
     summary: 'Strong overall performance with calibrated confidence.',
-    generatedAt: '2026-05-03 09:12',
+    generatedAt: '2026-07-28 09:12',
   },
   {
     id: 'f3', studentId: 'u3', studentName: 'Ella Reyes', module: 'Fundamentals of Accountancy I',
@@ -165,7 +165,7 @@ export const FEEDBACK = [
       'Drop back to LP2 supplemental drills before retake.',
     ],
     summary: 'Ella may benefit from a supplemental learning path before continuing.',
-    generatedAt: '2026-05-02 16:40',
+    generatedAt: '2026-07-25 16:40',
   },
   {
     id: 'f4', studentId: 'u4', studentName: 'Marco Villanueva', module: 'Business Mathematics',
@@ -180,7 +180,7 @@ export const FEEDBACK = [
       'Schedule a 1:1 review with Ms. Torres before retake.',
     ],
     summary: 'Marco is bouncing between formulas — recommend a slower, scaffolded path with paired practice.',
-    generatedAt: '2026-05-02 11:08',
+    generatedAt: '2026-07-22 11:08',
   },
   {
     id: 'f5', studentId: 'u5', studentName: 'Patricia Lim', module: 'Fundamentals of Accountancy I',
@@ -189,7 +189,7 @@ export const FEEDBACK = [
     mistakes: ['Skipped the explanatory memo line on Q4.'],
     suggestions: ['Practice formatting the full journal entry, including the memo.'],
     summary: 'Strong conceptual grasp. Just needs to tighten formatting before posting.',
-    generatedAt: '2026-05-01 13:55',
+    generatedAt: '2026-07-19 13:55',
   },
   {
     id: 'f6', studentId: 'u6', studentName: 'Daniel Cruz', module: 'Forms of Business Organization',
@@ -204,7 +204,7 @@ export const FEEDBACK = [
       'Try the matching drill on partnership types.',
     ],
     summary: 'Conceptual gaps around partnership liability — short targeted review should close it.',
-    generatedAt: '2026-05-01 09:30',
+    generatedAt: '2026-07-16 09:30',
   },
   {
     id: 'f7', studentId: 'u1', studentName: 'Maria Santos', module: 'Business Mathematics',
@@ -213,7 +213,7 @@ export const FEEDBACK = [
     mistakes: [],
     suggestions: ['Try the LP4 stretch problem set on chained discounts.'],
     summary: 'Excellent calibration and accuracy. Ready to advance to LP4 stretch material.',
-    generatedAt: '2026-04-29 15:12',
+    generatedAt: '2026-07-12 15:12',
   },
   {
     id: 'f8', studentId: 'u2', studentName: 'Juan Dela Cruz', module: 'Fundamentals of Accountancy I',
@@ -222,7 +222,7 @@ export const FEEDBACK = [
     mistakes: ['Reversed credit/debit on a withdrawal entry (Q4).'],
     suggestions: ['Quick refresher on Drawings vs. Owner’s Equity.'],
     summary: 'Solid performance overall — minor confusion on owner withdrawal direction.',
-    generatedAt: '2026-04-29 10:21',
+    generatedAt: '2026-07-08 10:21',
   },
 ];
 
@@ -247,15 +247,15 @@ export const STUDENTS_PROGRESS = [
 ];
 
 export const LOGS = [
-  { id: 'L0001', ts: '2026-05-05 08:14', actor: 'a.torres@acculearn.ph',  action: 'Approved AI feedback', target: 'Maria Santos / Quiz 3.2' },
-  { id: 'L0002', ts: '2026-05-05 08:02', actor: 'maria.s@acculearn.ph',   action: 'Submitted quiz',       target: 'Quiz 3.2 — Journal Entries' },
-  { id: 'L0003', ts: '2026-05-05 07:55', actor: 'juan.dc@acculearn.ph',   action: 'Completed lesson',     target: 'Markups & Discounts' },
-  { id: 'L0004', ts: '2026-05-04 22:31', actor: 'admin@acculearn.ph',     action: 'Created module',       target: 'Applied Economics' },
-  { id: 'L0005', ts: '2026-05-04 19:08', actor: 'ella.r@acculearn.ph',    action: 'Logged in',            target: '—' },
-  { id: 'L0006', ts: '2026-05-04 17:22', actor: 'r.yu@acculearn.ph',      action: 'Edited feedback',      target: 'Juan / Quiz 4.1' },
-  { id: 'L0007', ts: '2026-05-04 14:21', actor: 'system',                 action: 'Generated AI feedback',target: 'Maria / Quiz 3.2' },
-  { id: 'L0008', ts: '2026-05-04 11:09', actor: 'admin@acculearn.ph',     action: 'Added user',           target: 'patricia.l@acculearn.ph' },
-  { id: 'L0009', ts: '2026-05-04 09:44', actor: 'marco.v@acculearn.ph',   action: 'Failed quiz',          target: 'Quiz 3.1' },
+  { id: 'L0001', ts: '2026-08-06 08:14', actor: 'a.torres@acculearn.ph',  action: 'Approved AI feedback', target: 'Maria Santos / Quiz 3.2' },
+  { id: 'L0002', ts: '2026-08-05 08:02', actor: 'maria.s@acculearn.ph',   action: 'Submitted quiz',       target: 'Quiz 3.2 — Journal Entries' },
+  { id: 'L0003', ts: '2026-08-04 07:55', actor: 'juan.dc@acculearn.ph',   action: 'Completed lesson',     target: 'Markups & Discounts' },
+  { id: 'L0004', ts: '2026-08-03 22:31', actor: 'admin@acculearn.ph',     action: 'Created module',       target: 'Applied Economics' },
+  { id: 'L0005', ts: '2026-08-02 19:08', actor: 'ella.r@acculearn.ph',    action: 'Logged in',            target: '—' },
+  { id: 'L0006', ts: '2026-08-02 17:22', actor: 'r.yu@acculearn.ph',      action: 'Edited feedback',      target: 'Juan / Quiz 4.1' },
+  { id: 'L0007', ts: '2026-08-01 14:21', actor: 'system',                 action: 'Generated AI feedback',target: 'Maria / Quiz 3.2' },
+  { id: 'L0008', ts: '2026-07-30 11:09', actor: 'admin@acculearn.ph',     action: 'Added user',           target: 'patricia.l@acculearn.ph' },
+  { id: 'L0009', ts: '2026-07-28 09:44', actor: 'marco.v@acculearn.ph',   action: 'Failed quiz',          target: 'Quiz 3.1' },
 ];
 
 export const SYSTEM_STATS = {
