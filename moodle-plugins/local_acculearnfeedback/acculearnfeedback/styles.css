@@ -337,6 +337,23 @@ body {
   justify-content: center;
 }
 
+/* The mark is the white variant of the logo (pix/logo-mark-light.png), so it
+   sits directly on the toolbar's blue gradient with no chip behind it - the
+   translucent panel the rule above gives every other mark would only box it in
+   for no reason. An earlier pass used the dark navy site logo on a solid white
+   chip; this reads better and matches the rest of the bar, which is white-on-
+   blue throughout. */
+.al-toolbar__mark--img {
+  background: transparent;
+  padding: 0;
+}
+.al-toolbar__mark--img img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 .al-toolbar__link {
   display: flex;
   align-items: center;
@@ -361,6 +378,33 @@ body {
   .al-toolbar__link span { display: none; }
   .al-toolbar__link { padding: 12px 14px; }
   .al-toolbar__link i { font-size: 1.15em !important; }
+}
+
+/* Spacer that reserves room for the fixed toolbar.
+
+   lib.php emits this immediately after the toolbar, so it exists on exactly
+   the pages the toolbar does - which is why the height lives here rather than
+   on <body>: a body rule would also pad the login page and anywhere else the
+   toolbar is not rendered.
+
+   It used to be an inline height:56px. That is about right for a single row
+   (~57px desktop, ~54px mobile) but badly short when the bar wraps, which it
+   does on a phone: at 360px roughly six icon-only links fit per row, so a
+   teacher (four links) stays on one row but an administrator (eight) takes
+   two, about 108px. The fixed value also left nothing for the iPhone home
+   indicator. */
+.al-toolbar-spacer { height: 76px; }
+
+@media (max-width: 640px) {
+  .al-toolbar-spacer { height: calc(120px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* Declared after the 640px block above so it wins on equal specificity at
+   every width - the safe-area inset resolves to 0px on any browser that has
+   no inset, so there is no desktop cost. Without it the bottom row of icons
+   sits under the iPhone home indicator and is awkward to tap. */
+.al-toolbar {
+  padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
 }
 
 .al-table-wrap { overflow-x: auto; border: 1px solid var(--al-ink-200); border-radius: 12px; }
@@ -429,7 +473,9 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 12px 4px 8px;
+  /* Was 4px top/bottom, which computed to a ~23px tall control - under WCAG
+     2.2's 24px minimum target size. 6px clears it at ~29px. */
+  padding: 6px 12px 6px 8px;
   border-radius: 999px;
   border: 1px solid var(--al-ink-200);
   background: #fff;
@@ -440,6 +486,17 @@ body {
 }
 .al-radio-pills label:hover { border-color: var(--al-blue); }
 .al-radio-pills input[type=radio] { accent-color: var(--al-blue); margin: 0; }
+
+/* Touch devices: bring the interactive elements up to the ~44px both Apple and
+   Material recommend. Keyed on (pointer: coarse) rather than a width query, so
+   a narrow desktop window stays compact and a tablet still gets the larger
+   target. See qbehaviour_confidence/styles.css for the same treatment on the
+   confidence pills, which are the most-tapped control in the system. */
+@media (pointer: coarse) {
+  .al-btn { padding: 12px 18px; }
+  .al-radio-pills label { padding: 11px 14px 11px 10px; font-size: 13.5px; }
+  .al-course-link { display: inline-block; padding: 4px 0; }
+}
 
 /* The confidence selector (.qbehaviour_confidence_*) is NOT styled here.
    It lives in question/behaviour/confidence/styles.css, next to the renderer
@@ -475,5 +532,230 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .al-page .al-card { animation: none; }
   .al-btn, .al-btn:active, .coursebox { transition: none; transform: none; }
+  .path-course-view .activity-item { transition: none; }
   .al-course-link .fa, .al-course-link:hover .fa { transition: none; transform: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   Site policy pages (tool_policy).
+
+   These are the first thing every user now sees, including a panellist, and
+   Boost renders them as raw admin pages: prose edge to edge at full viewport
+   width, browser-default checkboxes, no vertical rhythm. Everything below is
+   scoped to .path-admin-tool-policy so it cannot leak into the rest of the
+   site, and it reuses the existing --al-* tokens rather than introducing a
+   second palette.
+   --------------------------------------------------------------------------- */
+
+/* A readable measure. Long-form prose past roughly 70 characters per line is
+   measurably harder to read, and this is the only long-form text on the site. */
+.path-admin-tool-policy .policy_document,
+.path-admin-tool-policy .policy_document_summary,
+.path-admin-tool-policy .policy_document_content {
+  max-width: 68ch;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.path-admin-tool-policy .policy_document_content {
+  line-height: 1.65;
+  color: var(--al-ink-700);
+}
+
+/* The policy HTML uses h3 for its numbered sections. Boost sizes those close to
+   the page title, which flattens the hierarchy - the reader cannot tell the
+   document title from a section heading. */
+.path-admin-tool-policy .policy_document_content h3 {
+  font-size: 1.06rem;
+  font-weight: 600;
+  color: var(--al-ink-900);
+  margin: 1.9rem 0 .5rem;
+  line-height: 1.35;
+}
+.path-admin-tool-policy .policy_document_content h3:first-child { margin-top: 0; }
+
+.path-admin-tool-policy .policy_document_content p { margin: 0 0 .9rem; }
+.path-admin-tool-policy .policy_document_content ul { margin: 0 0 1.1rem; padding-left: 1.15rem; }
+.path-admin-tool-policy .policy_document_content li { margin-bottom: .45rem; }
+.path-admin-tool-policy .policy_document_content strong { color: var(--al-ink-900); }
+
+/* The consent checkbox is the single most consequential control on the site -
+   nobody reaches anything without it - and it renders at the browser default
+   of roughly 13px. This matches the coarse-pointer sizing used elsewhere. */
+.path-admin-tool-policy input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  vertical-align: -3px;
+  margin-right: .45rem;
+  accent-color: var(--al-blue);
+}
+@media (pointer: coarse) {
+  .path-admin-tool-policy input[type="checkbox"] { width: 22px; height: 22px; }
+}
+
+/* Give each policy's consent row room to breathe and to wrap on a phone. */
+.path-admin-tool-policy .policy_buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin-top: 1.5rem;
+}
+
+/* Keyboard focus has to stay visible on a page that legally requires consent. */
+.path-admin-tool-policy a:focus-visible,
+.path-admin-tool-policy input:focus-visible,
+.path-admin-tool-policy button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(36, 89, 138, .28);
+}
+
+/* ---------------------------------------------------------------------------
+   Student-facing Moodle pages: course view and dashboard.
+
+   These are the pages students spend almost all their time on, and they are
+   stock Boost - flat rows of links with no visual grouping. Everything here is
+   scoped to a body class so it cannot reach admin or report screens, and it
+   reuses the --al-* tokens and the .al-card treatment already used by the
+   plugin's own pages, so the two halves of the site look like one system.
+
+   Pure CSS by design. No JavaScript, no additional fonts, no images - the
+   compiled Boost stylesheet is already around 1 MB, and none of this adds
+   measurably to it.
+   --------------------------------------------------------------------------- */
+
+/* --- Course page: activities as cards ------------------------------------ */
+
+/* Boost renders each lesson or quiz as an undifferentiated row. Giving each one
+   a surface makes the list scannable and gives the whole page a rhythm, which
+   matters on a course with nine activities in five sections. */
+.path-course-view .activity-item {
+  background: #fff;
+  border: 1px solid var(--al-ink-200);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  transition: border-color .12s ease, box-shadow .12s ease;
+}
+
+.path-course-view .activity-item:hover {
+  border-color: var(--al-blue-light);
+  box-shadow: 0 1px 3px rgba(16, 24, 40, .08);
+}
+
+/* Keyboard users get the same affordance as mouse users. */
+.path-course-view .activity-item:focus-within {
+  border-color: var(--al-blue);
+  box-shadow: 0 0 0 3px var(--al-blue-50);
+}
+
+.path-course-view .activity-item .activityname a,
+.path-course-view .activity-item .instancename {
+  font-weight: 600;
+  color: var(--al-ink-900);
+}
+
+/* --- Course page: section headings --------------------------------------- */
+
+.path-course-view .course-section-header .sectionname {
+  font-weight: 600;
+  color: var(--al-ink-900);
+  letter-spacing: -.01em;
+}
+
+/* --- Course page: why something is locked -------------------------------- */
+
+/* AccuLearn gates quizzes behind competency mastery, so this text is the only
+   explanation a student gets for why an activity will not open. Stock Boost
+   renders it as small muted prose that reads like a footnote. Amber, indented
+   and legible, it reads as the instruction it actually is. */
+.path-course-view .section_availability:not(:empty),
+.path-course-view .availabilityinfo {
+  display: block;
+  background: var(--al-amber-50);
+  border-left: 3px solid var(--al-amber);
+  border-radius: 0 6px 6px 0;
+  padding: 8px 12px;
+  margin-top: 8px;
+  font-size: .875rem;
+  color: var(--al-amber-ink);
+}
+
+/* --- Dashboard: blocks match the plugin's cards -------------------------- */
+
+.path-my .block .card,
+.path-my .block.card {
+  border: 1px solid var(--al-ink-200);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, .06);
+}
+
+.path-my .block .card-header {
+  background: transparent;
+  border-bottom: 1px solid var(--al-ink-100);
+  font-weight: 600;
+  color: var(--al-ink-900);
+}
+
+/* ---------------------------------------------------------------------------
+   Login, signup and the shared form controls.
+
+   The login page is the first thing a panellist sees and it is stock Boost.
+   The theme already constrains the card width for phones; this only adds the
+   surface treatment and the focus behaviour used everywhere else on the site.
+   --------------------------------------------------------------------------- */
+
+.path-login .card {
+  border: 1px solid var(--al-ink-200);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(16, 24, 40, .08);
+}
+
+.path-login .login-heading {
+  font-weight: 600;
+  color: var(--al-ink-900);
+  letter-spacing: -.01em;
+}
+
+.path-login .login-divider { border-top: 1px solid var(--al-ink-200); }
+
+/* Text inputs on every page a user meets before they are logged in: the login
+   form, the signup form and the consent pages. Same 10px radius as .al-btn so
+   controls across the site agree with each other. */
+.path-login .form-control,
+.path-admin-tool-policy .form-control {
+  border-radius: 10px;
+  border-color: var(--al-ink-200);
+}
+
+.path-login .form-control:focus,
+.path-admin-tool-policy .form-control:focus {
+  border-color: var(--al-blue);
+  box-shadow: 0 0 0 3px var(--al-blue-50);
+}
+
+.path-login .btn {
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+/* ---------------------------------------------------------------------------
+   Teacher and administrator screens.
+
+   Deliberately light. These are Moodle's own report and admin pages, seen
+   briefly during a demo, and they are the surface where aggressive overrides
+   break things. Typography and row affordance only - no layout changes.
+
+   The plugin's own tables are not affected: `.al-table-wrap table.generaltable`
+   is more specific than anything here, so those keep their existing treatment.
+   --------------------------------------------------------------------------- */
+
+.path-admin .generaltable th,
+.path-report .generaltable th {
+  font-weight: 600;
+  color: var(--al-ink-700);
+}
+
+.path-admin .generaltable tbody tr:hover,
+.path-report .generaltable tbody tr:hover {
+  background: var(--al-blue-50);
 }

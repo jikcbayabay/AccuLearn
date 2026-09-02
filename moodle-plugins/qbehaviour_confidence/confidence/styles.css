@@ -103,6 +103,40 @@
     box-shadow: 0 0 0 3px rgba(36, 89, 138, .28);
 }
 
+/* Bigger tap target on touch devices.
+ *
+ * At the desktop size above a pill computes to roughly 33px tall (13.5px text
+ * at 1.4 line-height, 6px padding each side, 1px border). That clears WCAG
+ * 2.2's 24px minimum but falls short of the 44px both Apple's HIG and Material
+ * recommend - and this is the single most-tapped control in the system: a
+ * student hits it once per question, thirty times in a summative quiz, usually
+ * on a phone.
+ *
+ * (pointer: coarse) keys on the input device rather than the viewport, which
+ * is the correct axis here: a narrow desktop window keeps the compact pill,
+ * and a large tablet still gets the bigger target. Browsers that do not
+ * support the query simply keep the desktop size. */
+@media (pointer: coarse) {
+    .qbehaviour_confidence_option {
+        padding: 11px 16px;
+        font-size: 14.5px;
+    }
+    .qbehaviour_confidence_radio {
+        width: 18px;
+        height: 18px;
+    }
+    /* The answer radios themselves are core Moodle markup, but they sit in the
+       same question block and are just as small. */
+    .que .answer > div > input[type="radio"],
+    .que .answer > div > input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+    }
+    .que .answer > div {
+        padding: 0.5rem 0;
+    }
+}
+
 /*
  * Shared vertical rhythm for the question block itself, so the answer options
  * and the confidence block share one spacing scale instead of each relying on
