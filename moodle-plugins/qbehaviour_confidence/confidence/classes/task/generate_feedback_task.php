@@ -48,7 +48,10 @@ class generate_feedback_task extends \core\task\adhoc_task {
             if ($user && file_exists("$backendpath/track_engine.php")) {
                 require_once("$backendpath/track_engine.php");
                 $trackEngine = new \TrackEngine();
-                $studentName = $user->firstname . ' ' . $user->lastname;
+                // Never send the real name to OpenAI. The engine is given a
+                // placeholder token and the plugin substitutes the reader's own
+                // name at display time - see FeedbackEngine::STUDENT_PLACEHOLDER.
+                $studentName = '[STUDENT]';
                 mtrace("AccuLearn: refreshing learning track for user {$attempt->userid}");
                 try {
                     $trackEngine->generateTrack($attempt->userid, $studentName);

@@ -6,6 +6,8 @@ require_login();
 global $DB, $OUTPUT, $PAGE, $USER;
 
 $context = context_system::instance();
+// Hiding the toolbar link is not access control - gate the page too.
+require_capability('local/acculearnfeedback:viewowntrack', $context);
 $PAGE->set_url('/local/acculearnfeedback/my_track.php');
 $PAGE->set_context($context);
 $PAGE->set_title('My Learning Track');
@@ -41,6 +43,9 @@ if (!$trackrow) {
 // $track['narrative'] straight off a null decode fatals the page, leaving the
 // student with a blank screen rather than a usable message.
 $track = json_decode($trackrow->track_json, true);
+
+// Swap the [STUDENT] token the AI was given for this student's own name.
+$track = local_acculearnfeedback_personalise($track, $USER->firstname);
 if (!is_array($track) || empty($track['competencies'])) {
     echo html_writer::start_div('al-page');
     echo html_writer::div(

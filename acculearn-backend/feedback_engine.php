@@ -6,6 +6,16 @@ require_once __DIR__ . '/rate_limiter.php';
 
 class FeedbackEngine {
 
+    /**
+     * Stand-in sent to OpenAI in place of the student's real name.
+     *
+     * The model is told to use this token literally; the plugin swaps it for
+     * the reader's own name (or a pseudonym, for teachers) at display time.
+     * The name therefore never leaves this server, and stored feedback holds
+     * no identifying text either.
+     */
+    const STUDENT_PLACEHOLDER = '[STUDENT]';
+
     private $moodle;
 
     public function __construct() {
@@ -273,7 +283,10 @@ private function getAnswersForQuestion($questionid) {
             . "the flaw in what they actually chose.\n"
             . "- When 'confidence' is 3 the student was certain and still wrong, so be especially "
             . "clear about the misunderstanding; when it is 1 they were guessing, so focus on the "
-            . "reasoning they should have used.";
+            . "reasoning they should have used.\n"
+            . "The student is identified to you only as the literal token "
+            . self::STUDENT_PLACEHOLDER . ". Address them using that exact token "
+            . "wherever you would use a name, and never invent or guess a real name.";
 
         $userPrompt = "Student: $studentName\n"
             . "Topic: $topicName\n"
@@ -363,7 +376,10 @@ private function getAnswersForQuestion($questionid) {
             . "Rules: stay strictly inside standard FABM 1 bookkeeping. Do NOT introduce topics "
             . "outside the subject, do NOT re-teach what they already got right, do NOT grade or "
             . "mention scores. Each hint is 1-2 sentences, concrete, and phrased as something to "
-            . "try or notice - not praise.";
+            . "try or notice - not praise.\n"
+            . "The student is identified to you only as the literal token "
+            . self::STUDENT_PLACEHOLDER . ". Address them using that exact token "
+            . "wherever you would use a name, and never invent or guess a real name.";
 
         $userPrompt = "Student: $studentName\n"
             . "Topic just mastered: $topicName\n"

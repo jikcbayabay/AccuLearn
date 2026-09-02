@@ -17,7 +17,7 @@ function acculearn_generate_feedback_for_attempt($attemptid) {
     }
 
     $stmt = $db->prepare("
-        SELECT u.id AS userid, u.firstname, u.lastname, q.name AS quiz_name
+        SELECT u.id AS userid, q.name AS quiz_name
         FROM mdl_quiz_attempts qa
         JOIN mdl_user u ON u.id = qa.userid
         JOIN mdl_quiz q ON q.id = qa.quiz
@@ -31,7 +31,10 @@ function acculearn_generate_feedback_for_attempt($attemptid) {
         return;
     }
 
-    $studentName = $info->firstname . ' ' . $info->lastname;
+    // The real name is deliberately never fetched or sent. See
+    // FeedbackEngine::STUDENT_PLACEHOLDER - the plugin substitutes the
+    // reader's own name at display time instead.
+    $studentName = FeedbackEngine::STUDENT_PLACEHOLDER;
 
     $engine = new FeedbackEngine();
     $details = $engine->getAttemptDetails($attemptid);

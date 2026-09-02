@@ -618,6 +618,51 @@ function local_acculearnfeedback_deidentify($text, $user, $pseudonym) {
     return (string)$text;
 }
 
+/**
+ * Substitutes the student placeholder in AI-generated content for a real label.
+ *
+ * Since September 2026 the AI is never told a student's name: it is given the
+ * literal token [STUDENT] and instructed to use it wherever it would write a
+ * name. Nothing identifying leaves the server, and the stored feedback and
+ * track JSON hold no name either. This puts a name back at display time, and
+ * the caller decides which one - the reader's own first name when a student
+ * views their own feedback, or a pseudonym on the teacher review screen.
+ *
+ * Walks the decoded structure rather than the raw JSON, so a label containing
+ * a quote or backslash cannot corrupt the document.
+ *
+ * Records generated before this change contain real names instead of the
+ * token; those are unaffected here and are still handled on the teacher screen
+ * by {@see local_acculearnfeedback_deidentify()}.
+ *
+ * @param mixed $data decoded JSON: string, array, or nested array
+ * @param string $label what to show in place of the placeholder
+ * @return mixed the same structure with placeholders replaced
+ */
+function local_acculearnfeedback_personalise($data, $label) {
+    if (is_string($data)) {
+        return str_replace(local_acculearnfeedback_student_placeholder(), $label, $data);
+    }
+    if (is_array($data)) {
+        foreach ($data as $key => $value) {
+            $data[$key] = local_acculearnfeedback_personalise($value, $label);
+        }
+    }
+    return $data;
+}
+
+/**
+ * The token the AI is given in place of a student's name.
+ *
+ * Mirrors FeedbackEngine::STUDENT_PLACEHOLDER in the backend. Defined here as
+ * well because the plugin renders stored content without loading the backend.
+ *
+ * @return string
+ */
+function local_acculearnfeedback_student_placeholder() {
+    return '[STUDENT]';
+}
+
 function local_acculearnfeedback_grade_context($feedbackid) {
     global $DB, $CFG;
 
@@ -989,13 +1034,19 @@ function local_acculearnfeedback_before_footer() {
     $canreview = has_capability('local/acculearnfeedback:reviewaioutput', $context);
     $canviewlogs = has_capability('local/acculearnfeedback:viewusagelogs', $context);
     $canmanagesequence = has_capability('local/acculearnfeedback:managesequence', $context);
+    $canviewowntrack = has_capability('local/acculearnfeedback:viewowntrack', $context);
 
     $items = [];
-    $items[] = [
-        'url' => $CFG->wwwroot . '/local/acculearnfeedback/my_track.php',
-        'icon' => 'fa-route',
-        'label' => 'My Learning Track',
-    ];
+
+    // Teachers do not get the student-facing track view - see db/access.php
+    // for why this hangs off a capability rather than a role name check.
+    if ($canviewowntrack) {
+        $items[] = [
+            'url' => $CFG->wwwroot . '/local/acculearnfeedback/my_track.php',
+            'icon' => 'fa-route',
+            'label' => 'My Learning Track',
+        ];
+    }
 
     if ($canreview) {
         $items[] = [
@@ -1036,6 +1087,32 @@ function local_acculearnfeedback_before_footer() {
         ];
     }
 
+    // Raw table browser - site administrators only, since it shows unfiltered rows.
+    if (has_capability('moodle/site:config', $context)) {
+        $items[] = [
+            'url' => $CFG->wwwroot . '/local/acculearnfeedback/db_browser.php',
+            'icon' => 'fa-database',
+            'label' => 'Database',
+        ];
+    }
+
+    // Instructions. Last in the list and shown to everyone - the page picks the
+    // right section from the reader's own capabilities.
+    $items[] = [
+        'url' => $CFG->wwwroot . '/local/acculearnfeedback/help.php',
+        'icon' => 'fa-circle-question',
+        'label' => 'Help',
+    ];
+
+    // Third-party attribution. Shown to everyone for the same reason as Help:
+    // the open-source licences the lesson content and interface depend on all
+    // require attribution, and a notice only staff can reach does not give it.
+    $items[] = [
+        'url' => $CFG->wwwroot . '/local/acculearnfeedback/attribution.php',
+        'icon' => 'fa-scale-balanced',
+        'label' => 'Credits',
+    ];
+
     $itemshtml = '';
     foreach ($items as $item) {
         $itemshtml .= '
@@ -1047,19 +1124,30 @@ function local_acculearnfeedback_before_footer() {
 
     echo local_acculearnfeedback_pretest_notice();
 
+    // Brand mark. This uses the white version of the logo shipped with the
+    // plugin rather than $OUTPUT->get_compact_logo_url(), and that is deliberate:
+    // the site logo is dark navy, and this toolbar is a dark blue gradient, so
+    // the configured logo would either disappear into the background or need a
+    // white chip behind it that does not match anything else in the bar. The
+    // light variant sits directly on the gradient and reads cleanly.
+    //
+    // The trade-off is that replacing the site logo in Appearance does not
+    // change this mark - swap pix/logo-mark-light.png as well. See
+    // docs/brand/README.md.
+    global $OUTPUT;
+    $markhtml = '
+                <span class="al-toolbar__mark al-toolbar__mark--img">
+                    <img src="' . s($OUTPUT->image_url('logo-mark-light', 'local_acculearnfeedback')->out(false)) . '"
+                         alt="" aria-hidden="true">
+                </span>';
+
     echo '
         <div class="al-toolbar">
-            <div class="al-toolbar__brand">
-                <span class="al-toolbar__mark">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                        <path d="M5 19 12 5l7 14" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M8.2 14h7.6" stroke="#72b579" stroke-width="2.6" stroke-linecap="round"/>
-                    </svg>
-                </span>
+            <div class="al-toolbar__brand">' . $markhtml . '
                 AccuLearn
             </div>
             ' . $itemshtml . '
         </div>
-        <div style="height:56px;"></div>
+        <div class="al-toolbar-spacer"></div>
     ';
 }

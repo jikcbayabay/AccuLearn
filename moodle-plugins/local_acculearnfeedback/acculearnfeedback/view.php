@@ -148,6 +148,15 @@ if (!empty($feedbackrow->flagged)) {
 
 $feedback = json_decode($feedbackrow->feedback_json, true);
 
+// The AI is never told the student's name - it writes the [STUDENT] token
+// instead - so put a name back for whoever is reading. The owner sees their
+// own first name; anyone else (a teacher opening the attempt) sees the
+// pseudonym, matching the review screen.
+$feedback = local_acculearnfeedback_personalise(
+    $feedback,
+    $isowner ? $USER->firstname : local_acculearnfeedback_pseudonym($attempt->userid)
+);
+
 echo html_writer::start_div('al-page', ['style' => 'max-width: 800px;']);
 echo $pagetitle;
 

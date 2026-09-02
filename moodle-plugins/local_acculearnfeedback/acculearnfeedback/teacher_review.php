@@ -207,7 +207,10 @@ echo html_writer::end_tag('div');
 if ($canreveal) {
     $toggleurl = new moodle_url('/local/acculearnfeedback/teacher_review.php',
         ['tab' => $tab, 'reveal' => $revealnames ? 0 : 1]);
-    echo html_writer::start_div('', ['style' => 'margin-bottom:16px; display:flex; align-items:center; gap:10px;']);
+    // flex-wrap: the button label plus the status text runs to roughly 390px,
+    // which overflowed a phone viewport and forced the whole page to scroll
+    // sideways. Every other flex row on this page already wraps.
+    echo html_writer::start_div('', ['style' => 'margin-bottom:16px; display:flex; flex-wrap:wrap; align-items:center; gap:10px;']);
     echo html_writer::link($toggleurl,
         ($revealnames ? 'Hide names (show pseudonyms)' : 'Reveal real names'),
         ['class' => 'al-btn al-btn-sm al-btn-secondary']);
@@ -259,8 +262,13 @@ if ($tab === 'feedback') {
         // The AI writes to the student by name, so the prose must be scrubbed
         // too - anonymising only the heading left "Hi Kristine!" sitting under
         // a "Student-A4E0" label.
+        // Two eras of stored content. Records written since September 2026
+        // carry the [STUDENT] token and only need substituting; older ones
+        // carry the real name and still need scrubbing. Doing both in order
+        // handles either without having to know which is which.
         $deid = function($text) use ($revealnames, $r, $displayname) {
-            return $revealnames ? (string)$text
+            $text = local_acculearnfeedback_personalise((string)$text, $displayname);
+            return $revealnames ? $text
                 : local_acculearnfeedback_deidentify($text, $r, $displayname);
         };
 
@@ -380,8 +388,10 @@ if ($tab === 'feedback') {
         echo html_writer::tag('span', $statuslabel, ['class' => "al-badge al-badge--$statustone"]);
         echo html_writer::end_div();
 
-        $overview = $revealnames ? ($narrative['overview'] ?? '')
-            : local_acculearnfeedback_deidentify($narrative['overview'] ?? '', $r, $displayname);
+        $overview = local_acculearnfeedback_personalise($narrative['overview'] ?? '', $displayname);
+        if (!$revealnames) {
+            $overview = local_acculearnfeedback_deidentify($overview, $r, $displayname);
+        }
         echo html_writer::tag('p', s($overview), ['style' => 'margin-top:8px;']);
 
         echo html_writer::start_div('al-table-wrap', ['style' => 'margin-top:8px;']);

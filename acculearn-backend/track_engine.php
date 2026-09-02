@@ -164,7 +164,10 @@ class TrackEngine {
             . "is still ahead of them; 'maintain' is already mastered and only optional review. Your 'next_focus' MUST "
             . "be about the competency marked 'next' (if there is none, every competency is mastered - say so). Never "
             . "tell the student a competency has been skipped or removed: nothing is skipped, the order is simply "
-            . "personalised to them.";
+            . "personalised to them.\n"
+            . "The student is identified to you only as the literal token "
+            . FeedbackEngine::STUDENT_PLACEHOLDER . ". Address them using that exact "
+            . "token wherever you would use a name, and never invent or guess a real name.";
 
         $trackSummary = [];
         foreach ($fullTrack as $t) {

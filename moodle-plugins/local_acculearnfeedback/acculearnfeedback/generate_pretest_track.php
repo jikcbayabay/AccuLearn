@@ -55,7 +55,9 @@ echo html_writer::tag('p', "Generating initial learning track for $studentName b
 
 try {
     $engine = new TrackEngine();
-    $result = $engine->generateTrack($userid, $studentName, 'pretest');
+    // $studentName above is for this administrator's on-screen progress line
+    // only. The engine gets the placeholder, so no name reaches OpenAI.
+    $result = $engine->generateTrack($userid, '[STUDENT]', 'pretest');
 
     // Pre-test data bypasses the quiz-submission observer entirely, so this
     // is the only place that needs to sync unlock-group membership for it.
