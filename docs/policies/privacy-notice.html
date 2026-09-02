@@ -1,0 +1,26 @@
+<h3>What this notice covers</h3>
+<p>This explains what AccuLearn records about you, who can see it, and what you can ask for. It reflects what the system actually does.</p>
+
+<h3>What is collected</h3>
+<ul>
+<li><strong>Your account details</strong> &mdash; name, username and email address, as entered by the administrator who created your account.</li>
+<li><strong>Your quiz work</strong> &mdash; the answer you gave to each question and the confidence rating you selected for it.</li>
+<li><strong>Computed scores</strong> &mdash; your Competency Mastery, Confidence Misconception Index and Guessing Index for each attempt, and the learning pathway assigned from them.</li>
+<li><strong>AI-generated text</strong> &mdash; the feedback written for each attempt and the narrative summary in your learning track.</li>
+<li><strong>Pre-test and post-test responses</strong> &mdash; answers from the paper tests, entered by a teacher.</li>
+<li><strong>Usage records</strong> &mdash; which lessons, quizzes and pages you opened, and when.</li>
+</ul>
+
+<h3>What is sent outside the system</h3>
+<p>To write your feedback and learning-track summary, the system sends the following to the OpenAI API: your mastery and confidence figures, and &mdash; for each question you got wrong &mdash; the question, the answer choices, the answer you picked, the correct answer, and how confident you said you were.</p>
+<p><strong>No information that identifies you is sent.</strong> Where your name would appear, the system sends the placeholder <code>[STUDENT]</code> instead, and puts your name back only when the feedback is displayed on your own screen. Your name, username, email address, password and Moodle user ID never leave this server.</p>
+<p>Feedback written before September 2026 was generated differently: your first name was included in the request at that time. Those older records still contain it, and your teacher continues to see them under your pseudonym.</p>
+
+<h3>Who can see your records</h3>
+<p>You can always see your own feedback and learning track. Teachers reviewing AI output see students under a stable pseudonym such as &ldquo;Student-4C2A&rdquo; by default; revealing real names requires a separate permission that ordinary teachers do not hold. Every review action a teacher takes is written to a log that cannot be edited afterwards. Administrators can see all records.</p>
+
+<h3>How long it is kept</h3>
+<p>Study records are retained for 180 days, after which an administrator can remove them. Nothing is deleted automatically, and nothing is deleted without a person deciding to do it.</p>
+
+<h3>Your rights</h3>
+<p>You can request a copy of everything the system holds about you, or ask for it to be deleted, using Moodle's own data request tools under your profile. Both AccuLearn plugins implement Moodle's Privacy API, so those requests return the AccuLearn data as well as the standard Moodle data.</p>
