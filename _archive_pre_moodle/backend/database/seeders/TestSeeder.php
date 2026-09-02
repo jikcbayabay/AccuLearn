@@ -8,7 +8,9 @@ use App\Models\Competency;
 use App\Models\LearningMaterial;
 use App\Models\MasteryRecord;
 use App\Models\Module;
+use App\Models\UsageLog;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Seeder;
 
 class TestSeeder extends Seeder
@@ -19,66 +21,108 @@ class TestSeeder extends Seeder
         [$allCompetencies, $student1] = $this->seedModulesAndCompetencies();
         $this->seedAssessments($allCompetencies);
         $this->seedMasteryRecords($student1, $allCompetencies);
+        $this->seedUsageLogs();
+    }
+
+    // ─── Timestamp helpers ────────────────────────────────────────────────────
+    //
+    // Seeded data is dated into the documented testing window (2026-07-06 →
+    // 2026-08-07) rather than defaulting to whenever the seeder happens to run.
+
+    private function randDate(): string
+    {
+        $start = strtotime('2026-07-06');
+        $end   = strtotime('2026-08-07');
+
+        return date('Y-m-d H:i:s', rand($start, $end));
+    }
+
+    private function randDateBetween(string $from, string $to): string
+    {
+        return date('Y-m-d H:i:s', rand(strtotime($from), strtotime($to)));
+    }
+
+    /**
+     * Write created_at / updated_at onto an already-persisted model.
+     *
+     * These columns are not in any model's $fillable, so passing them through
+     * updateOrCreate()'s values array would be silently discarded by mass
+     * assignment protection. forceFill() + disabled auto-timestamps is what
+     * actually makes the dates stick.
+     *
+     * updated_at is drawn from [created_at, $updatedCeiling] so a record is never
+     * updated before it was created, and never after the testing window closes.
+     */
+    private function stamp(Model $model, ?string $createdAt = null, string $updatedCeiling = '2026-08-07 23:59:59'): Model
+    {
+        $created = $createdAt ?? $this->randDate();
+        $updated = $this->randDateBetween($created, $updatedCeiling);
+
+        $model->timestamps = false;
+        $model->forceFill(['created_at' => $created, 'updated_at' => $updated])->save();
+        $model->timestamps = true;
+
+        return $model;
     }
 
     // ─── Users ────────────────────────────────────────────────────────────────
 
     private function seedUsers(): void
     {
-        User::updateOrCreate(['email' => 'admin@acculearn.test'], [
+        $this->stamp(User::updateOrCreate(['email' => 'admin@acculearn.test'], [
             'name' => 'Admin User', 'password' => 'password123',
             'role' => User::ROLE_ADMIN, 'active' => true, 'section' => null,
-        ]);
-        User::updateOrCreate(['email' => 'teacher@acculearn.test'], [
+        ]));
+        $this->stamp(User::updateOrCreate(['email' => 'teacher@acculearn.test'], [
             'name' => 'Teacher User', 'password' => 'password123',
             'role' => User::ROLE_TEACHER, 'active' => true, 'section' => 'ABM 11-A',
-        ]);
-        User::updateOrCreate(['email' => 'student2@acculearn.test'], [
+        ]));
+        $this->stamp(User::updateOrCreate(['email' => 'student2@acculearn.test'], [
             'name' => 'Student Two', 'password' => 'password123',
             'role' => User::ROLE_STUDENT, 'active' => true, 'section' => 'ABM 11-A',
-        ]);
-        User::updateOrCreate(['email' => 'student3@acculearn.test'], [
+        ]));
+        $this->stamp(User::updateOrCreate(['email' => 'student3@acculearn.test'], [
             'name' => 'Student Three', 'password' => 'password123',
             'role' => User::ROLE_STUDENT, 'active' => true, 'section' => 'ABM 11-B',
-        ]);
+        ]));
     }
 
     // ─── Modules + Competencies + Learning Materials ──────────────────────────
 
     private function seedModulesAndCompetencies(): array
     {
-        $student1 = User::updateOrCreate(['email' => 'student1@acculearn.test'], [
+        $student1 = $this->stamp(User::updateOrCreate(['email' => 'student1@acculearn.test'], [
             'name' => 'Student One', 'password' => 'password123',
             'role' => User::ROLE_STUDENT, 'active' => true, 'section' => 'ABM 11-A',
-        ]);
+        ]));
 
         $catalog = $this->moduleCatalog();
         $allCompetencies = collect();
 
         foreach ($catalog as $moduleDef) {
-            $module = Module::updateOrCreate(
+            $module = $this->stamp(Module::updateOrCreate(
                 ['title' => $moduleDef['title']],
                 [
                     'description' => $moduleDef['description'],
                     'order'       => $moduleDef['order'],
                 ]
-            );
+            ));
 
             $previousId = null;
             foreach ($moduleDef['competencies'] as $idx => $compDef) {
-                $competency = Competency::updateOrCreate(
+                $competency = $this->stamp(Competency::updateOrCreate(
                     ['module_id' => $module->id, 'deped_code' => $compDef['deped_code']],
                     [
                         'title'                      => $compDef['title'],
                         'order'                      => $idx + 1,
                         'prerequisite_competency_id' => $previousId,
                     ]
-                );
+                ));
                 $allCompetencies->push($competency);
                 $previousId = $competency->id;
 
                 // Video placeholder
-                LearningMaterial::updateOrCreate(
+                $this->stamp(LearningMaterial::updateOrCreate(
                     ['competency_id' => $competency->id, 'type' => 'video'],
                     [
                         'title'       => 'Video: ' . $competency->title,
@@ -86,10 +130,10 @@ class TestSeeder extends Seeder
                         'body'        => null,
                         'vark_type'   => 'visual',
                     ]
-                );
+                ));
 
                 // Text reading with real content
-                LearningMaterial::updateOrCreate(
+                $this->stamp(LearningMaterial::updateOrCreate(
                     ['competency_id' => $competency->id, 'type' => 'text'],
                     [
                         'title'       => 'Reading: ' . $competency->title,
@@ -97,10 +141,10 @@ class TestSeeder extends Seeder
                         'body'        => $compDef['body'],
                         'vark_type'   => 'readwrite',
                     ]
-                );
+                ));
 
                 // Activity
-                LearningMaterial::updateOrCreate(
+                $this->stamp(LearningMaterial::updateOrCreate(
                     ['competency_id' => $competency->id, 'type' => 'activity'],
                     [
                         'title'       => 'Activity: ' . $competency->title,
@@ -108,7 +152,7 @@ class TestSeeder extends Seeder
                         'body'        => $compDef['activity'] ?? null,
                         'vark_type'   => 'kinesthetic',
                     ]
-                );
+                ));
             }
         }
 
@@ -118,27 +162,139 @@ class TestSeeder extends Seeder
     private function seedAssessments($allCompetencies): void
     {
         foreach ($allCompetencies as $competency) {
-            Assessment::updateOrCreate(
+            $this->stamp(Assessment::updateOrCreate(
                 ['competency_id' => $competency->id],
                 ['title' => 'Assessment: ' . $competency->title, 'passing_score' => 75.00, 'moodle_quiz_id' => null]
-            );
+            ));
         }
     }
 
     private function seedMasteryRecords($student1, $allCompetencies): void
     {
+        // Dates are banded so the record set reads as a term's worth of progress:
+        // the mastered competencies were assessed early in the testing window and
+        // the weakest one last, rather than all four landing on the same day.
         $progress = [
-            ['mastery_score' => 92.00, 'mastery_level' => MasteryLevel::MASTERED->value,          'attempt_count' => 1],
-            ['mastery_score' => 80.00, 'mastery_level' => MasteryLevel::MASTERED->value,          'attempt_count' => 2],
-            ['mastery_score' => 71.00, 'mastery_level' => MasteryLevel::DEVELOPING->value,        'attempt_count' => 1],
-            ['mastery_score' => 60.00, 'mastery_level' => MasteryLevel::NEEDS_IMPROVEMENT->value, 'attempt_count' => 2],
+            ['mastery_score' => 92.00, 'mastery_level' => MasteryLevel::MASTERED->value,          'attempt_count' => 1, 'window' => ['2026-07-06', '2026-07-11']],
+            ['mastery_score' => 80.00, 'mastery_level' => MasteryLevel::MASTERED->value,          'attempt_count' => 2, 'window' => ['2026-07-11', '2026-07-16']],
+            ['mastery_score' => 71.00, 'mastery_level' => MasteryLevel::DEVELOPING->value,        'attempt_count' => 1, 'window' => ['2026-07-16', '2026-07-25']],
+            ['mastery_score' => 60.00, 'mastery_level' => MasteryLevel::NEEDS_IMPROVEMENT->value, 'attempt_count' => 2, 'window' => ['2026-07-26', '2026-08-07 23:59:59']],
         ];
         foreach ($progress as $idx => $record) {
-            MasteryRecord::updateOrCreate(
-                ['user_id' => $student1->id, 'competency_id' => $allCompetencies[$idx]->id],
-                $record
+            [$from, $to] = $record['window'];
+            unset($record['window']);
+
+            $this->stamp(
+                MasteryRecord::updateOrCreate(
+                    ['user_id' => $student1->id, 'competency_id' => $allCompetencies[$idx]->id],
+                    $record
+                ),
+                $this->randDateBetween($from, $to),
+                $to
             );
         }
+    }
+
+    // ─── Usage Logs ───────────────────────────────────────────────────────────
+
+    /**
+     * Build a plausible activity trail across the testing window.
+     *
+     * Each student gets 2–3 study sessions a week. A session opens on the
+     * dashboard, moves through one or two modules, and about a third of the
+     * time ends in a quiz submission — the same shape SystemLogController::log()
+     * produces at runtime. Only the three action strings the application
+     * actually writes are used, so seeded rows are indistinguishable from real
+     * ones in the admin log view.
+     */
+    private function seedUsageLogs(): void
+    {
+        UsageLog::query()->delete();
+
+        $students  = User::where('role', User::ROLE_STUDENT)->get();
+        $moduleIds = Module::pluck('id')->all();
+
+        if ($students->isEmpty() || $moduleIds === []) {
+            return;
+        }
+
+        $windowStart = strtotime('2026-07-06 00:00:00');
+        $windowEnd   = strtotime('2026-08-07 23:59:59');
+        $rows        = [];
+
+        foreach ($students as $student) {
+            // Prefer competencies this student was actually assessed on so
+            // 'Submitted quiz' rows line up with their mastery records.
+            $competencyIds = MasteryRecord::where('user_id', $student->id)
+                ->pluck('competency_id')
+                ->all();
+
+            if ($competencyIds === []) {
+                $competencyIds = Competency::orderBy('id')->limit(4)->pluck('id')->all();
+            }
+
+            for ($weekStart = $windowStart; $weekStart <= $windowEnd; $weekStart += 7 * 86400) {
+                $dayOffsets = (array) array_rand(array_flip(range(0, 6)), rand(2, 3));
+                sort($dayOffsets);
+
+                foreach ($dayOffsets as $dayOffset) {
+                    // Study hours — nothing lands at 3am.
+                    $at = $weekStart + ($dayOffset * 86400) + rand(8 * 3600, 20 * 3600);
+
+                    if ($at > $windowEnd) {
+                        continue;
+                    }
+
+                    $rows[] = $this->logRow($student->id, 'Viewed dashboard', $at);
+
+                    for ($i = 0, $views = rand(1, 2); $i < $views; $i++) {
+                        $at += rand(60, 900);
+
+                        if ($at > $windowEnd) {
+                            break;
+                        }
+
+                        $rows[] = $this->logRow(
+                            $student->id,
+                            'Viewed module',
+                            $at,
+                            $moduleIds[array_rand($moduleIds)]
+                        );
+                    }
+
+                    if (rand(1, 3) === 1) {
+                        $at += rand(300, 1800);
+
+                        if ($at <= $windowEnd) {
+                            $rows[] = $this->logRow(
+                                $student->id,
+                                'Submitted quiz',
+                                $at,
+                                null,
+                                $competencyIds[array_rand($competencyIds)]
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        usort($rows, fn ($a, $b) => $a['logged_at'] <=> $b['logged_at']);
+
+        foreach (array_chunk($rows, 500) as $chunk) {
+            UsageLog::insert($chunk);
+        }
+    }
+
+    private function logRow(int $userId, string $action, int $at, ?int $moduleId = null, ?int $competencyId = null): array
+    {
+        return [
+            'user_id'       => $userId,
+            'action'        => $action,
+            'module_id'     => $moduleId,
+            'competency_id' => $competencyId,
+            'logged_at'     => date('Y-m-d H:i:s', $at),
+        ];
     }
 
     // ─── Lesson Content Catalog ───────────────────────────────────────────────

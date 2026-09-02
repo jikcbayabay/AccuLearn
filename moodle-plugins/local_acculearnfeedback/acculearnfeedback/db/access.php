@@ -50,4 +50,21 @@ $capabilities = [
         ],
     ],
 
+    /*
+     * The student-facing track view. Granted to the authenticated user role so
+     * every logged-in student has it at system context (student roles are
+     * assigned per-course, so a system-context check against 'student' would
+     * never pass). The AccuLearn teacher role PROHIBITs it. PREVENT is not
+     * enough here: has_capability_in_accessdata() treats CAP_ALLOW in any one
+     * of the user's roles as sufficient, so only CAP_PROHIBIT overrides the
+     * grant the authenticated user role hands out at the same context.
+     */
+    'local/acculearnfeedback:viewowntrack' => [
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes' => [
+            'user' => CAP_ALLOW,
+        ],
+    ],
+
 ];

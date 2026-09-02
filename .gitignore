@@ -63,3 +63,6 @@ acculearn-backend/.dbpass
 PROJECT_HANDOFF.md
 CLAUDE.md
 THESIS_DOCUMENT_CHANGES.md
+
+# Raw DB exports — contain real student IDs and responses. Never commit.
+exports/

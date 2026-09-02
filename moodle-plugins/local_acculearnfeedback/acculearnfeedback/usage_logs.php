@@ -69,22 +69,45 @@ $sql = "SELECT l.*, u.firstname, u.lastname, c.fullname AS coursename
  */
 $tzoffset = (int) (new DateTimeZone(\core_date::get_server_timezone()))
     ->getOffset(new DateTime('@' . time()));
+// "Active days" and first/last activity are deliberately sourced from Moodle's own
+// logstore, NOT from this table. acculearn_usage_log records a narrower set of actions
+// by design (it never tracked attempt_viewed / attempt_updated / user_graded / sco_launched,
+// which together are most of what a student generates while working inside a quiz). Counting
+// days from this table therefore understated engagement badly - one student showed 9 active
+// days against 25 in the logstore, and three showed a "last active" date 18 days early.
+// The event counts below stay sourced from this table, because they are what the Activity
+// detail list underneath actually shows.
+$lswhere = ['1=1'];
+$lsparams = [];
+if ($filteruser) { $lswhere[] = 'userid = ?'; $lsparams[] = $filteruser; }
+if ($filterdays > 0) { $lswhere[] = 'timecreated >= ?'; $lsparams[] = time() - ($filterdays * 86400); }
+$lswheresql = implode(' AND ', $lswhere);
+
 $summarysql = "
     SELECT l.userid,
            u.firstname, u.lastname,
            COUNT(*)                                                        AS events,
-           COUNT(DISTINCT FROM_UNIXTIME(l.timecreated + $tzoffset, '%Y-%m-%d')) AS activedays,
-           SUM(l.action = 'session_start')                                 AS logins,
-           SUM(l.action = 'view_lesson')                                   AS lessonviews,
+           ml.activedays                                                   AS activedays,
            SUM(l.action IN ('quiz_submitted', 'quiz_attempt_submitted'))   AS quizsubmits,
            SUM(l.action = 'view_feedback')                                 AS feedbackviews,
+           SUM(l.action = 'feedback_generated')                            AS feedbackmade,
            SUM(l.action = 'view_track')                                    AS trackviews,
-           MIN(l.timecreated)                                              AS firstseen,
-           MAX(l.timecreated)                                              AS lastseen
+           SUM(l.action = 'track_generated')                               AS trackmade,
+           ml.firstseen                                                    AS firstseen,
+           ml.lastseen                                                     AS lastseen
       FROM {acculearn_usage_log} l
       JOIN {user} u ON u.id = l.userid
+ LEFT JOIN (
+           SELECT userid,
+                  COUNT(DISTINCT FROM_UNIXTIME(timecreated + $tzoffset, '%Y-%m-%d')) AS activedays,
+                  MIN(timecreated) AS firstseen,
+                  MAX(timecreated) AS lastseen
+             FROM {logstore_standard_log}
+            WHERE $lswheresql
+         GROUP BY userid
+           ) ml ON ml.userid = l.userid
      $whersql
-  GROUP BY l.userid, u.firstname, u.lastname
+  GROUP BY l.userid, u.firstname, u.lastname, ml.activedays, ml.firstseen, ml.lastseen
   ORDER BY events DESC";
 
 if ($export !== '') {
@@ -94,7 +117,10 @@ if ($export !== '') {
     require_sesskey();
 
     $issummary = ($export === 'summary');
-    $recordset = $DB->get_recordset_sql($issummary ? $summarysql : $sql, $params);
+    // The summary query's LEFT JOIN subquery carries its own placeholders, and they appear
+    // ahead of $whersql in the SQL text - so they must be bound first.
+    $recordset = $DB->get_recordset_sql($issummary ? $summarysql : $sql,
+        $issummary ? array_merge($lsparams, $params) : $params);
 
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="acculearn_usage_'
@@ -106,8 +132,9 @@ if ($export !== '') {
 
     if ($issummary) {
         fputcsv($out, array_merge($namecols,
-            ['Total Events', 'Active Days', 'Logins', 'Lessons Opened', 'Quizzes Submitted',
-             'Feedback Views', 'Track Views', 'First Activity', 'Last Activity']), ',', '"', '\\');
+            ['AccuLearn Events', 'Active Days', 'Quizzes Submitted',
+             'Feedback Views', 'Feedback Generated', 'Track Views', 'Track Generated',
+             'First Activity', 'Last Activity']), ',', '"', '\\');
     } else {
         fputcsv($out, array_merge(['Log ID'], $namecols,
             ['Action', 'What', 'Course', 'Target Type', 'Target ID', 'Logged At']), ',', '"', '\\');
@@ -120,8 +147,8 @@ if ($export !== '') {
 
         if ($issummary) {
             $row = array_merge($name, [
-                $r->events, $r->activedays, $r->logins, $r->lessonviews, $r->quizsubmits,
-                $r->feedbackviews, $r->trackviews,
+                $r->events, $r->activedays, $r->quizsubmits,
+                $r->feedbackviews, $r->feedbackmade, $r->trackviews, $r->trackmade,
                 userdate($r->firstseen, '%Y-%m-%d %H:%M:%S'),
                 userdate($r->lastseen, '%Y-%m-%d %H:%M:%S'),
             ]);
@@ -157,10 +184,10 @@ echo $OUTPUT->heading(get_string('usagelogstitle', 'local_acculearnfeedback'));
 echo html_writer::start_div('al-page');
 
 echo html_writer::div(
-    'Records logins, competency-course visits, lesson opens, quiz starts and submissions, and every ' .
-    'AI feedback / learning-track generation and view - per student, with what was actually opened. ' .
-    'This is the raw engagement dataset behind the study\'s frequency-of-use and completion metrics ' .
-    '(thesis Sections 3.5.3 / 3.8.7). Anonymise before analysis if this data leaves the research team.',
+    'Shows what each student actually did: course visits, quizzes started and submitted, and every ' .
+    'AI feedback and learning track generated or opened. This is the raw activity data behind the ' .
+    'study\'s engagement and completion figures (thesis 3.5.3 / 3.8.7). ' .
+    'Remove names before sharing this outside the research team.',
     'al-card al-card--accent'
 );
 
@@ -169,7 +196,10 @@ if ($canreveal) {
     $toggleurl = new moodle_url('/local/acculearnfeedback/usage_logs.php',
         ['reveal' => $revealnames ? 0 : 1, 'filteruser' => $filteruser,
          'filteraction' => $filteraction, 'filterdays' => $filterdays]);
-    echo html_writer::start_div('', ['style' => 'margin-bottom:16px; display:flex; align-items:center; gap:10px;']);
+    // flex-wrap: the button label plus the status text runs to roughly 390px,
+    // which overflowed a phone viewport and forced the whole page to scroll
+    // sideways. Every other flex row on these pages already wraps.
+    echo html_writer::start_div('', ['style' => 'margin-bottom:16px; display:flex; flex-wrap:wrap; align-items:center; gap:10px;']);
     echo html_writer::link($toggleurl,
         ($revealnames ? 'Hide names (show pseudonyms)' : 'Reveal real names'),
         ['class' => 'al-btn al-btn-sm al-btn-secondary']);
@@ -245,12 +275,21 @@ if ($canreveal) {
 echo html_writer::end_div();
 
 // ---- Per-student engagement summary ----
-$summary = $DB->get_records_sql($summarysql, $params);
+$summary = $DB->get_records_sql($summarysql, array_merge($lsparams, $params));
 
 echo html_writer::tag('h4', '<i class="fa fa-users" aria-hidden="true"></i>Engagement summary per student');
 echo html_writer::tag('p',
-    '"Active days" counts distinct days with any recorded activity - the defensible stand-in for '
-    . '"duration of use", since Moodle does not reliably emit session-end events.',
+    '"Active days" means how many different days the student did anything in Moodle, and '
+    . '"last active" is the last time they did. Both come from Moodle\'s own activity log, so they '
+    . 'count everything - including time spent working inside a quiz. We show active days instead '
+    . 'of time spent, because Moodle cannot reliably tell when a session ended. '
+    . '"AccuLearn events" counts only the actions this plugin records, which are the ones listed '
+    . 'in Activity detail below - so it is a smaller number, and that is expected. '
+    . 'Logins and lessons opened are not shown as totals, because this plugin recorded only some '
+    . 'of them. Each one still appears individually in Activity detail. '
+    . 'Feedback and track views are shown as "viewed of generated" - they are counted when the '
+    . 'student opens the page, which is the only place that content appears, so a 0 means the '
+    . 'student never opened it. More views than generated means they re-read it.',
     ['style' => 'color:var(--al-ink-500); font-size:0.85em; margin-top:-6px;']);
 
 if ($summary) {
@@ -258,10 +297,8 @@ if ($summary) {
     echo html_writer::start_tag('table', ['class' => 'generaltable', 'style' => 'width:100%;']);
     echo html_writer::tag('tr',
         html_writer::tag('th', 'Student') .
-        html_writer::tag('th', 'Events') .
+        html_writer::tag('th', 'AccuLearn events') .
         html_writer::tag('th', 'Active days') .
-        html_writer::tag('th', 'Logins') .
-        html_writer::tag('th', 'Lessons opened') .
         html_writer::tag('th', 'Quizzes submitted') .
         html_writer::tag('th', 'Feedback views') .
         html_writer::tag('th', 'Track views') .
@@ -275,11 +312,19 @@ if ($summary) {
             html_writer::tag('td', $displayname) .
             html_writer::tag('td', html_writer::tag('span', $r->events, ['class' => 'tnum'])) .
             html_writer::tag('td', html_writer::tag('span', $r->activedays, ['class' => 'tnum'])) .
-            html_writer::tag('td', html_writer::tag('span', $r->logins, ['class' => 'tnum'])) .
-            html_writer::tag('td', html_writer::tag('span', $r->lessonviews, ['class' => 'tnum'])) .
             html_writer::tag('td', html_writer::tag('span', $r->quizsubmits, ['class' => 'tnum'])) .
-            html_writer::tag('td', html_writer::tag('span', $r->feedbackviews, ['class' => 'tnum'])) .
-            html_writer::tag('td', html_writer::tag('span', $r->trackviews, ['class' => 'tnum'])) .
+            // Views are shown against how many were generated for that student. A bare "0"
+            // reads as missing data; "0 of 29" reads as what it is - the student never opened
+            // any of the 29 pieces of feedback the system made for them. Counts above 100%
+            // are genuine re-reads, which is the more interesting finding.
+            html_writer::tag('td',
+                html_writer::tag('span', $r->feedbackviews, ['class' => 'tnum'])
+                . html_writer::tag('span', ' of ' . $r->feedbackmade,
+                    ['style' => 'color:var(--al-ink-500); font-size:0.85em;'])) .
+            html_writer::tag('td',
+                html_writer::tag('span', $r->trackviews, ['class' => 'tnum'])
+                . html_writer::tag('span', ' of ' . $r->trackmade,
+                    ['style' => 'color:var(--al-ink-500); font-size:0.85em;'])) .
             html_writer::tag('td', userdate($r->lastseen, '%Y-%m-%d %H:%M'))
         );
     }

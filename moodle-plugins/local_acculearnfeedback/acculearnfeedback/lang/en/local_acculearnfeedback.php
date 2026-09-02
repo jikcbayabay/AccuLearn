@@ -11,9 +11,16 @@ $string['acculearnfeedback:reviewaioutput'] = 'Review and flag AI-generated feed
 $string['acculearnfeedback:revealstudentnames'] = 'Reveal real student names in AI-output review screens';
 $string['acculearnfeedback:managesequence'] = 'Manage competency sequence, prerequisites and gating';
 $string['acculearnfeedback:viewusagelogs'] = 'View AccuLearn system usage/engagement logs';
+$string['acculearnfeedback:viewowntrack'] = 'View own personalised learning track';
 
 // Privacy metadata.
-$string['privacy:metadata:openai'] = 'To generate formative feedback and personalized learning track narratives, anonymized performance data (mastery percentages, confidence indices, and the text of incorrectly answered questions) is sent to the OpenAI API.';
+// This string said "anonymized performance data" until 2026-08-29, which was
+// not accurate: generate_feedback.php passes the student's real name so the AI
+// can address them directly, and a live check confirmed the name comes back
+// inside the generated prose. The name is stripped again before a teacher sees
+// the text (local_acculearnfeedback_deidentify), but it does leave the server,
+// and a privacy statement has to say so.
+$string['privacy:metadata:openai'] = 'To generate formative feedback and personalized learning track narratives, the following is sent to the OpenAI API: the student\'s first and last name, their computed mastery percentage and confidence indices, and for each question answered incorrectly the question text, the available options, the answer the student chose, the correct answer, and the confidence rating they gave. The name is sent so that the feedback can address the student directly, and is removed again before the feedback is displayed to a teacher. No username, email address, Moodle user ID or password is sent.';
 $string['privacy:metadata:openai:summary'] = 'Quiz performance data is sent to this service to generate AI feedback and learning-track narratives.';
 
 $string['privacy:metadata:acculearn_feedback'] = 'AI-generated formative feedback for a single quiz attempt.';
