@@ -593,12 +593,67 @@ body {
   .path-admin-tool-policy input[type="checkbox"] { width: 22px; height: 22px; }
 }
 
-/* Give each policy's consent row room to breathe and to wrap on a phone. */
+/* The site name is already in the header bar. Moodle prints it again as the
+   page H1, directly above the policy's own title, so the first thing a reader
+   sees is "AccuLearn / AccuLearn / Terms of Use". Hide the page heading here
+   and let the policy title lead. */
+.path-admin-tool-policy .page-context-header { display: none; }
+
+/* "Please read this before continuing" is guidance, not a peer of the policy
+   title - but Moodle marks it up as an H3, the same level as the policy's own
+   numbered sections. Demote it visually so the hierarchy reads correctly. */
+.path-admin-tool-policy [role="main"] > .clearfix > h3 {
+  font-size: .95rem;
+  font-weight: 400;
+  color: var(--al-ink-500);
+  margin: 0;
+}
+
+/* Keep the rules at the same measure as the prose they separate. */
+.path-admin-tool-policy [role="main"] > hr {
+  max-width: 68ch;
+  margin-left: auto;
+  margin-right: auto;
+  border-color: var(--al-ink-200);
+}
+
+/* The action row. Moodle renders "Next" as a small default-sized button at the
+   bottom LEFT with "Back to top" floated opposite - so the primary action of
+   the whole page sits in the weakest position on the screen and is an awkward
+   tap target. Reversed so the primary action lands bottom-right where a
+   continue button is expected, sized to the 44px touch target used elsewhere,
+   and full-width on a phone. */
 .path-admin-tool-policy .policy_buttons {
   display: flex;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  align-items: center;
   flex-wrap: wrap;
-  gap: .5rem;
-  margin-top: 1.5rem;
+  gap: .75rem;
+  max-width: 68ch;
+  margin: 1.25rem auto 0;
+}
+
+.path-admin-tool-policy .policy_buttons .float-end { float: none !important; }
+
+.path-admin-tool-policy .policy_buttons .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 150px;
+  padding: .6rem 1.75rem;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .path-admin-tool-policy .policy_buttons {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .path-admin-tool-policy .policy_buttons .btn { width: 100%; }
+  .path-admin-tool-policy .policy_buttons .float-end { text-align: center; }
 }
 
 /* Keyboard focus has to stay visible on a page that legally requires consent. */
