@@ -490,7 +490,10 @@ class DecisionEngine {
      */
     private function callModel(array $messages, $schema) {
         $payload = [
-            'model' => self::MODEL,
+            // ACCULEARN_DECISION_MODEL is a test hook: verify_ai_decides.php
+            // defines it to a nonexistent model so the call fails and the
+            // rule fallback can be shown to engage. Never set in production.
+            'model' => defined('ACCULEARN_DECISION_MODEL') ? ACCULEARN_DECISION_MODEL : self::MODEL,
             // Decisions should be repeatable: the same evidence on two
             // different days should place the student the same way.
             'temperature' => 0,

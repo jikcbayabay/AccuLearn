@@ -51,8 +51,12 @@ class TrackEngine {
      * older narrative-only call (or, failing that too, the previous
      * narrative is kept). The refreshed FACTS are always stored so the
      * per-quiz checklist never lags because prose could not be written.
+     *
+     * @param bool $force re-decide even when the stored track already rests
+     *   on identical evidence (verify_ai_decides.php uses this; nothing in
+     *   the normal flow does).
      */
-    public function generateTrack($userid, $studentName, $source = 'quiz') {
+    public function generateTrack($userid, $studentName, $source = 'quiz', $force = false) {
         $this->laststored = false;
 
         $evidence = $this->mastery->computeFullEvidence($userid, $source);
@@ -67,7 +71,9 @@ class TrackEngine {
                 $previousNarrative = $previous['narrative'] ?? null;
                 $previousby = $previous['decision']['by'] ?? null;
                 $previoussig = $previous['decision']['evidence_signature'] ?? null;
-                if (MasteryEngine::DECISION_MODE === 'ai') {
+                if ($force) {
+                    // fall through to a fresh decision
+                } else if (MasteryEngine::DECISION_MODE === 'ai') {
                     if ($previousby === 'ai' && $previoussig === $signature) {
                         return $previous;
                     }
