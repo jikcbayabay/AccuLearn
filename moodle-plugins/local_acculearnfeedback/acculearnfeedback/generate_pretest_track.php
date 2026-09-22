@@ -66,7 +66,12 @@ try {
     local_acculearnfeedback_log_usage($userid, 'track_generated', 'track', null,
         'Initial learning track generated from pre-test results');
 
-    echo html_writer::div('Track generated successfully.', 'al-card al-card--flag-approved');
+    $decidedbyai = (($result['decision']['by'] ?? null) === 'ai');
+    echo html_writer::div('Track generated successfully. '
+        . ($decidedbyai
+            ? 'Placement decided by the AI model (' . s($result['decision']['model'] ?? 'model') . ').'
+            : 'Placement decided by the rule-based formula (AI decision unavailable).'),
+        'al-card al-card--flag-approved');
 
     echo html_writer::start_div('al-card al-card--accent', ['style' => 'margin-bottom:24px;']);
     echo html_writer::tag('h4', '<i class="fa fa-compass" aria-hidden="true"></i>Narrative', ['style' => 'margin-top:0;']);
@@ -79,7 +84,9 @@ try {
     echo html_writer::tag('h4', '<i class="fa fa-chart-line" aria-hidden="true"></i>Competency Breakdown');
     echo html_writer::start_div('al-table-wrap');
     echo html_writer::start_tag('table', ['class' => 'generaltable', 'style' => 'width:100%;']);
-    echo html_writer::tag('tr', html_writer::tag('th', 'Competency') . html_writer::tag('th', 'CM') . html_writer::tag('th', 'Mastery') . html_writer::tag('th', 'Pathway'));
+    echo html_writer::tag('tr', html_writer::tag('th', 'Competency') . html_writer::tag('th', 'CM')
+        . html_writer::tag('th', 'Mastery') . html_writer::tag('th', 'Pathway')
+        . ($decidedbyai ? html_writer::tag('th', 'AI rationale') : ''));
     foreach ($result['competencies'] as $c) {
         echo html_writer::tag('tr',
             html_writer::tag('td', s($c['competency_name'])) .
@@ -94,7 +101,11 @@ try {
                 html_writer::div(local_acculearnfeedback_progress_bar($c['cm'] ?? null, $c['mastery']), '', ['style' => 'min-width:90px;'])
             ) .
             html_writer::tag('td', s($c['mastery'])) .
-            html_writer::tag('td', local_acculearnfeedback_lp_badge($c['lp'] ?? null, $c['lp_label']))
+            html_writer::tag('td', local_acculearnfeedback_lp_badge($c['lp'] ?? null, $c['lp_label'])) .
+            ($decidedbyai
+                ? html_writer::tag('td', s($c['rationale'] ?? ''),
+                    ['style' => 'font-size:0.85em; color:var(--al-ink-700);'])
+                : '')
         );
     }
     echo html_writer::end_tag('table');

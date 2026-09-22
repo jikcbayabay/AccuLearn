@@ -73,17 +73,18 @@ if ($narrativeflagged) {
     $narrative = [];
 }
 
-// The stored track is a SNAPSHOT, rewritten only when its evidence signature
-// changes - so its per-quiz checklist and mastery figures can lag the real
-// gradebook (a quiz regraded outside a submission, or a formative passed
-// without moving a mastery band, both leave it behind). Everything below the
-// narrative is deterministic and cheap to recompute, so it is recomputed here
-// against live data; only the AI prose comes from storage. Falls back to the
-// snapshot if the backend is unavailable.
-$live = local_acculearnfeedback_live_competencies($USER->id, $track['source'] ?? 'quiz');
+// The stored track is a SNAPSHOT, rewritten only when its evidence changes -
+// so its per-quiz checklist and mastery figures can lag the real gradebook
+// (a quiz regraded outside a submission leaves it behind). The FACTS are
+// refreshed here against live data; the DECISIONS (mastery, pathway, order)
+// stay as the AI made them, and the page says so when a re-decision is
+// pending. Falls back to the snapshot if the backend is unavailable.
+$live = local_acculearnfeedback_live_competencies($USER->id, $track);
 if ($live) {
     $competencies = $live;
 }
+$decidedbyai = (($track['decision']['by'] ?? null) === 'ai');
+$evidencestale = $decidedbyai && !empty($competencies[0]['evidence_stale']);
 
 // Each competency is its own Moodle course, so its name links to the material.
 $courselinks = local_acculearnfeedback_competency_courses();
@@ -109,8 +110,19 @@ echo html_writer::tag('p', s($narrative['encouragement'] ?? ''), ['style' => 'fo
 // while the cards below are recomputed live on every view. Dating the summary
 // keeps that difference honest rather than implying both were written now.
 echo html_writer::tag('div',
-    'Summary written ' . userdate($trackrow->generated_at, get_string('strftimedatetimeshort')),
+    'Summary written ' . userdate($trackrow->generated_at, get_string('strftimedatetimeshort'))
+    . ($decidedbyai
+        ? ' · Your mastery levels, pathway and study order were decided by the AI model from your results.'
+        : ''),
     ['style' => 'color:var(--al-ink-500); font-size:0.8em; margin-top:10px;']);
+if ($evidencestale) {
+    // Live facts below no longer match what the decision was made on. Say
+    // so rather than let a fresh grade sit beside a pathway that predates it.
+    echo html_writer::tag('div',
+        '<i class="fa fa-rotate" aria-hidden="true"></i> New results have come in since this pathway '
+        . 'was decided. It will be re-evaluated automatically within a few minutes.',
+        ['style' => 'color:var(--al-ink-700); font-size:0.85em; margin-top:8px;']);
+}
 echo html_writer::end_div();
 
 // Competency cards, grouped by the adaptive priority the mastery engine

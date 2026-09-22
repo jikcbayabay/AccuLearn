@@ -38,6 +38,31 @@ class MasteryEngine {
     const LP_MODE = 'paper';
 
     /**
+     * Who makes the mastery / pathway / ordering decisions.
+     *
+     * 'ai'
+     *   DecisionEngine (decision_engine.php): the model is handed the
+     *   evidence for all seven competencies and decides mastery tier, LP,
+     *   adaptive order and priority group itself, with no formula in its
+     *   prompt. Decisions are made when a track is (re)generated - after each
+     *   quiz submission and on pre-test entry - and STORED in
+     *   acculearn_learning_tracks. The quiz gate and unlock-group sync read
+     *   the stored decision (currentPathway()) rather than recomputing.
+     *   Switched on 2026-09-22.
+     *
+     * 'rule'
+     *   The LP_MODE formula above decides everything, computed live on every
+     *   read. This is how the system ran during the study and is still the
+     *   FALLBACK whenever the model is unavailable or a student has no stored
+     *   decision yet (a brand-new student before their first submission).
+     *
+     * The formula code is kept in full for that fallback, so flipping this
+     * back to 'rule' restores the study-era behaviour without a redeploy of
+     * anything else.
+     */
+    const DECISION_MODE = 'ai';
+
+    /**
      * Fewest answered items before a competency may be called "Mastered".
      *
      * CM is correct/answered, so the DENOMINATOR is whatever evidence exists -
@@ -434,21 +459,217 @@ class MasteryEngine {
         return $prereq['all_passed'] ? 1 : 0;
     }
 
-    public function computeLearningPathway($userid, $competencyId, $source = 'quiz') {
+    /**
+     * The FACTS about one competency, with no decision attached: the three
+     * CBM indices and what they rest on, plus the per-quiz pass record. This
+     * is what the AI decision model is given, and what the pages refresh live
+     * on top of a stored decision (applyLiveEvidence()).
+     *
+     * Keys match the corresponding fields of a stored track row, so evidence
+     * and decision can be merged by plain array union.
+     */
+    public function computeEvidence($userid, $competencyId, $source = 'quiz') {
         $stats = ($source === 'pretest')
             ? $this->computeCompetencyStatsFromPretest($userid, $competencyId)
             : $this->computeCompetencyStats($userid, $competencyId);
 
+        // Shown on the track page whichever rule decides the pathway, so the
+        // student can still see exactly which quizzes remain outstanding.
+        $quizstatus = $this->competencyQuizStatus($userid, $competencyId);
+
+        return [
+            'competency_id' => (int) $competencyId,
+            'cm' => $stats['cm'],
+            'cmi' => $stats['cmi'],
+            'gi' => $stats['gi'],
+            'attempted' => $stats['attempted'],
+            'quizzes' => $quizstatus['quizzes'],
+            'formatives_passed' => $quizstatus['formatives_passed'],
+            'summative_passed' => $quizstatus['summative_passed'],
+            'all_passed' => $quizstatus['all_passed'],
+            'quizzes_passed' => $quizstatus['passed_count'],
+            'quizzes_total' => $quizstatus['total_count'],
+        ];
+    }
+
+    /**
+     * computeEvidence() for every competency, in curriculum order, with the
+     * competency's name, sequence, course and prerequisite attached.
+     */
+    public function computeFullEvidence($userid, $source = 'quiz') {
+        $db = get_db();
+        $competencies = $db->query("SELECT * FROM acculearn_competencies ORDER BY sequence")->fetchAll();
+
+        $evidence = [];
+        foreach ($competencies as $c) {
+            $row = $this->computeEvidence($userid, $c->id, $source);
+            $row['competency_name'] = $c->name;
+            $row['sequence'] = (int) $c->sequence;
+            $row['courseid'] = $c->courseid === null ? null : (int) $c->courseid;
+            $row['prerequisite_id'] = $c->prerequisite_id === null ? null : (int) $c->prerequisite_id;
+            $evidence[] = $row;
+        }
+        return $evidence;
+    }
+
+    /**
+     * Fingerprint of the evidence a decision was made on.
+     *
+     * A stored track is only re-decided (one model call) when this changes.
+     * It covers exactly the inputs the model sees - the three indices, the
+     * item count and each quiz's attempted/passed state - and nothing the
+     * model produces, so a re-run that happens to decide differently on the
+     * same facts does not itself trigger another run.
+     *
+     * Accepts evidence rows or full track rows (a superset) alike.
+     */
+    public static function evidenceSignature(array $rows) {
+        $sig = [];
+        foreach ($rows as $t) {
+            $quizzes = [];
+            foreach (($t['quizzes'] ?? []) as $q) {
+                $quizzes[(int) $q['id']] = [
+                    !empty($q['attempted']) ? 1 : 0,
+                    !empty($q['passed']) ? 1 : 0,
+                ];
+            }
+            ksort($quizzes);
+            $sig[(int) $t['competency_id']] = [
+                $t['cm'] ?? null,
+                $t['cmi'] ?? null,
+                $t['gi'] ?? null,
+                (int) ($t['attempted'] ?? 0),
+                $quizzes,
+            ];
+        }
+        ksort($sig);
+        return sha1(json_encode($sig));
+    }
+
+    /**
+     * The decision currently in force for one competency - what the quiz
+     * gate and the unlock-group sync act on.
+     *
+     * Under DECISION_MODE 'ai' this is the STORED decision from the
+     * student's latest track, which the model made the last time their
+     * evidence changed. It is read, not recomputed: recomputing would mean a
+     * model call on every quiz page view. The formula is used only when the
+     * student has no AI-decided track yet (nothing submitted, no pre-test
+     * entered, or every model call so far has failed), so a new student is
+     * gated exactly as before rather than not at all.
+     *
+     * A stored decision can trail the gradebook by the time it takes the
+     * ad-hoc task to run after a submission (about a minute) or, for a change
+     * made outside a submission such as a teacher's regrade, until the next
+     * scheduled refresh (sync_unlock_groups_task, every 15 minutes).
+     *
+     * @return array a track row (lp, mastery, ...) plus 'decided_by' => 'ai'|'rule'
+     */
+    public function currentPathway($userid, $competencyId) {
+        if (self::DECISION_MODE === 'ai') {
+            $stored = $this->storedDecision($userid, $competencyId);
+            if ($stored !== null) {
+                return $stored;
+            }
+        }
+        $result = $this->computeLearningPathway($userid, $competencyId, 'quiz');
+        $result['decided_by'] = 'rule';
+        return $result;
+    }
+
+    /** Per-request memo for storedDecision(), keyed by userid. */
+    private $storedtrackcache = [];
+
+    /**
+     * The stored AI decision row for one competency, or null when the
+     * student has no AI-decided track (legacy rule-era tracks return null
+     * too, so they keep being gated by the formula they were made with).
+     */
+    public function storedDecision($userid, $competencyId) {
+        $track = $this->storedTrack($userid);
+        if ($track === null || (($track['decision']['by'] ?? null) !== 'ai')) {
+            return null;
+        }
+        foreach ($track['competencies'] as $row) {
+            if ((int) $row['competency_id'] === (int) $competencyId) {
+                $row['decided_by'] = 'ai';
+                return $row;
+            }
+        }
+        return null;
+    }
+
+    /** The decoded stored track for a user, or null. Memoised per instance. */
+    public function storedTrack($userid) {
+        $userid = (int) $userid;
+        if (!array_key_exists($userid, $this->storedtrackcache)) {
+            $db = get_db();
+            $stmt = $db->prepare("SELECT track_json FROM acculearn_learning_tracks WHERE userid = ?");
+            $stmt->execute([$userid]);
+            $row = $stmt->fetch();
+            $track = $row ? json_decode($row->track_json, true) : null;
+            $this->storedtrackcache[$userid] = (is_array($track) && !empty($track['competencies'])) ? $track : null;
+        }
+        return $this->storedtrackcache[$userid];
+    }
+
+    /**
+     * Refreshes the FACT fields of stored decision rows from live evidence,
+     * leaving the decision fields (mastery, lp, priority, rationale...) as
+     * the model made them. Used by the track page so a regraded quiz shows
+     * its real grade while the pathway stays whatever was actually decided.
+     *
+     * @return array the rows in their stored (adaptive) order, plus
+     *   'evidence_stale' => true on every row when the live evidence no
+     *   longer matches what the decision was made on.
+     */
+    public function applyLiveEvidence(array $storedrows, array $evidence) {
+        $live = [];
+        foreach ($evidence as $e) {
+            $live[(int) $e['competency_id']] = $e;
+        }
+        $stale = self::evidenceSignature($storedrows) !== self::evidenceSignature($evidence);
+
+        $factkeys = ['cm', 'cmi', 'gi', 'attempted', 'quizzes', 'formatives_passed',
+            'summative_passed', 'all_passed', 'quizzes_passed', 'quizzes_total'];
+        foreach ($storedrows as &$row) {
+            $e = $live[(int) $row['competency_id']] ?? null;
+            if ($e !== null) {
+                foreach ($factkeys as $k) {
+                    if (array_key_exists($k, $e)) {
+                        $row[$k] = $e[$k];
+                    }
+                }
+            }
+            $row['evidence_stale'] = $stale;
+        }
+        unset($row);
+        return $storedrows;
+    }
+
+    /**
+     * The RULE decision for one competency: the LP_MODE formula applied to
+     * computeEvidence(). Under DECISION_MODE 'ai' this is the fallback only;
+     * see currentPathway() for what the gate actually uses.
+     */
+    public function computeLearningPathway($userid, $competencyId, $source = 'quiz') {
+        $evidence = $this->computeEvidence($userid, $competencyId, $source);
+        $stats = ['cm' => $evidence['cm'], 'attempted' => $evidence['attempted']];
+
         $pr = $this->checkPrerequisite($userid, $competencyId, $source);
 
-        $cm = $stats['cm'];
-        $cmi = $stats['cmi'];
-        $gi = $stats['gi'];
+        $cm = $evidence['cm'];
+        $cmi = $evidence['cmi'];
+        $gi = $evidence['gi'];
 
-        // Computed in both modes: the per-quiz checklist is shown on the track
-        // page regardless of which rule decides the pathway, so the student can
-        // still see exactly which quizzes remain outstanding.
-        $quizstatus = $this->competencyQuizStatus($userid, $competencyId);
+        $quizstatus = [
+            'quizzes' => $evidence['quizzes'],
+            'formatives_passed' => $evidence['formatives_passed'],
+            'summative_passed' => $evidence['summative_passed'],
+            'all_passed' => $evidence['all_passed'],
+            'passed_count' => $evidence['quizzes_passed'],
+            'total_count' => $evidence['quizzes_total'],
+        ];
         $allpassed = $quizstatus['all_passed'];
 
         if (self::LP_MODE === 'paper') {
@@ -687,6 +908,7 @@ class MasteryEngine {
 
             $t['blocked'] = ((int) $t['pr'] === 0);
             $t['is_next'] = ($t['competency_id'] === $frontier);
+            $t['decided_by'] = 'rule';
         }
         unset($t);
 

@@ -394,9 +394,25 @@ if ($tab === 'feedback') {
         }
         echo html_writer::tag('p', s($overview), ['style' => 'margin-top:8px;']);
 
+        // Who decided this track. An AI-decided track carries the model's
+        // own reasoning per competency, shown in the last column so the
+        // teacher can check a pathway against the evidence it cites.
+        $decidedbyai = (($track['decision']['by'] ?? null) === 'ai');
+        $decisionnote = $decidedbyai
+            ? 'Mastery, pathway and order decided by the AI model ('
+                . s($track['decision']['model'] ?? 'model') . ') on '
+                . userdate($track['decision']['decided_at'] ?? $r->generated_at, get_string('strftimedatetimeshort'))
+            : 'Mastery and pathway decided by the rule-based formula'
+                . (!empty($track['decision']['fallback_reason'])
+                    ? ' (AI decision unavailable at the time)' : '');
+        echo html_writer::tag('div', $decisionnote,
+            ['style' => 'color:var(--al-ink-500); font-size:0.8em; margin-top:4px;']);
+
         echo html_writer::start_div('al-table-wrap', ['style' => 'margin-top:8px;']);
         echo html_writer::start_tag('table', ['class' => 'generaltable', 'style' => 'width:100%;']);
-        echo html_writer::tag('tr', html_writer::tag('th', 'Competency') . html_writer::tag('th', 'CM') . html_writer::tag('th', 'Mastery') . html_writer::tag('th', 'Pathway'));
+        echo html_writer::tag('tr', html_writer::tag('th', 'Competency') . html_writer::tag('th', 'CM')
+            . html_writer::tag('th', 'Mastery') . html_writer::tag('th', 'Pathway')
+            . ($decidedbyai ? html_writer::tag('th', 'AI rationale') : ''));
         foreach (($track['competencies'] ?? []) as $c) {
             echo html_writer::tag('tr',
                 html_writer::tag('td', s($c['competency_name'])) .
@@ -411,7 +427,11 @@ if ($tab === 'feedback') {
                     html_writer::div(local_acculearnfeedback_progress_bar($c['cm'] ?? null, $c['mastery']), '', ['style' => 'min-width:90px;'])
                 ) .
                 html_writer::tag('td', s($c['mastery'])) .
-                html_writer::tag('td', local_acculearnfeedback_lp_badge($c['lp'] ?? null, $c['lp_label']))
+                html_writer::tag('td', local_acculearnfeedback_lp_badge($c['lp'] ?? null, $c['lp_label'])) .
+                ($decidedbyai
+                    ? html_writer::tag('td', s($c['rationale'] ?? ''),
+                        ['style' => 'font-size:0.85em; color:var(--al-ink-700);'])
+                    : '')
             );
         }
         echo html_writer::end_tag('table');

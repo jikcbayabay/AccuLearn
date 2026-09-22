@@ -90,7 +90,10 @@ function local_acculearnfeedback_sync_unlock_groups_for_user($userid) {
         if (has_capability('mod/quiz:manage', $context, $userid)) {
             $unlocked = true;
         } else if ($c->gating_enabled) {
-            $result = $engine->computeLearningPathway($userid, $c->id, 'quiz');
+            // The stored AI decision, or the formula for a student without
+            // one yet - the same read quizaccess_acculearn/rule.php makes,
+            // so the group and the quiz gate can never disagree.
+            $result = $engine->currentPathway($userid, $c->id);
             $unlocked = ($result['lp'] !== 1);
         } else {
             $unlocked = true;
@@ -137,47 +140,107 @@ function local_acculearnfeedback_sync_all_unlock_groups() {
 }
 
 /**
- * Recomputes a student's competency rows live, straight from the gradebook.
+ * Refreshes a student's competency rows against the live gradebook.
  *
- * The learning track is stored as a JSON snapshot, and that snapshot is only
- * rewritten when its evidence signature changes (see TrackEngine). Everything
- * in it that is FACT rather than AI prose - the per-quiz pass checklist, the
- * mastery percentages, which competency is next - can therefore be older than
- * the gradebook it describes. That is not a hypothetical: a quiz regraded
- * outside a submission, or a formative passed without moving a mastery band,
- * both leave the snapshot behind, and the student is shown "not taken" beside
- * a quiz they have sat and passed.
+ * The learning track is stored as a JSON snapshot, rewritten only when its
+ * evidence changes (see TrackEngine). Its per-quiz pass checklist and mastery
+ * percentages can therefore be older than the gradebook: a quiz regraded
+ * outside a submission leaves the snapshot behind, and the student is shown
+ * "not taken" beside a quiz they have sat and passed.
  *
- * So the pages recompute the deterministic half at render time and keep only
- * the narrative from storage. The computation is the same MasteryEngine call
- * the quiz access rule already makes on every quiz page view, so this is a
- * cost the site is already paying elsewhere.
+ * For an AI-decided track the FACTS are refreshed live and the DECISIONS
+ * (mastery, pathway, order, priority) are kept exactly as the model made
+ * them - re-deciding here would either need a model call on every page view
+ * or, worse, silently substitute the formula's verdict for the AI's. When the
+ * live facts no longer match what the decision rests on, every row carries
+ * 'evidence_stale' => true so the page can say a re-decision is pending
+ * (the scheduled task makes it within 15 minutes).
+ *
+ * A rule-era track (no 'decision' block) is recomputed in full by the
+ * formula, as it always was.
  *
  * @param int $userid
- * @param string $source 'quiz' or 'pretest' - MUST match the source the stored
- *   track was built from, since a pretest-sourced track reads a different
- *   evidence table entirely.
+ * @param array $track the decoded stored track; its 'source' MUST be the one
+ *   the evidence is read from, since a pretest-sourced track reads a
+ *   different evidence table entirely.
  * @return array|null competency rows in the same shape as the stored track's
  *   'competencies', or null if the backend is unavailable (caller should then
  *   fall back to the stored snapshot rather than showing nothing).
  */
-function local_acculearnfeedback_live_competencies($userid, $source = 'quiz') {
+function local_acculearnfeedback_live_competencies($userid, array $track) {
     $backendpath = '/var/www/html/acculearn-backend/mastery_engine.php';
     if (!file_exists($backendpath)) {
         return null;
     }
 
+    $source = $track['source'] ?? 'quiz';
     try {
         require_once($backendpath);
         $engine = new MasteryEngine();
+        if (($track['decision']['by'] ?? null) === 'ai' && !empty($track['competencies'])) {
+            $evidence = $engine->computeFullEvidence($userid, $source);
+            return $engine->applyLiveEvidence($track['competencies'], $evidence);
+        }
         $live = $engine->computeFullTrack($userid, $source);
         return empty($live) ? null : $live;
     } catch (\Throwable $e) {
         // A backend/database problem must not take down the student's page -
         // the stored snapshot is still worth showing.
-        debugging('AccuLearn live track recompute failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        debugging('AccuLearn live track refresh failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
         return null;
     }
+}
+
+/**
+ * Re-decides every AI-decided track whose evidence has changed since the
+ * model last saw it.
+ *
+ * The normal trigger is the quiz-submission ad-hoc task. Anything that
+ * changes a student's evidence WITHOUT a submission - a teacher's regrade or
+ * grade override, a granted extra attempt - leaves the stored decision (and
+ * with it the quiz gate) resting on old facts. This runs from
+ * sync_unlock_groups_task, ahead of the group sync, so the groups are then
+ * synced from the fresh decision.
+ *
+ * Rule-era tracks (the study's stored tracks, which carry no 'decision'
+ * block) are never touched: regenerating them would overwrite the tracks
+ * Chapter 4 reports on. They are re-decided only when the student
+ * themself submits something.
+ *
+ * @return int number of tracks re-decided
+ */
+function local_acculearnfeedback_refresh_stale_tracks() {
+    global $DB;
+
+    $backendpath = '/var/www/html/acculearn-backend/track_engine.php';
+    if (!file_exists($backendpath)) {
+        return 0;
+    }
+    require_once($backendpath);
+
+    $refreshed = 0;
+    $userids = $DB->get_fieldset_sql("SELECT userid FROM acculearn_learning_tracks");
+    foreach ($userids as $userid) {
+        try {
+            $engine = new TrackEngine();
+            if (!$engine->storedTrackIsStale($userid)) {
+                continue;
+            }
+            $track = $engine->getStoredTrack($userid);
+            $stored = json_decode($track->track_json, true);
+            $engine->generateTrack($userid, '[STUDENT]', $stored['source'] ?? 'quiz');
+            if ($engine->lastRunStoredTrack()) {
+                $refreshed++;
+                local_acculearnfeedback_log_usage($userid, 'track_generated', 'track', null,
+                    'Learning track re-decided after evidence changed outside a submission');
+            }
+        } catch (\Throwable $e) {
+            // One student's failed refresh must not stop the rest, nor the
+            // group sync that follows.
+            mtrace("AccuLearn: stale-track refresh failed for user $userid: " . $e->getMessage());
+        }
+    }
+    return $refreshed;
 }
 
 /**

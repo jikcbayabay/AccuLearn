@@ -2,6 +2,7 @@
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/mastery_engine.php';
+require_once __DIR__ . '/decision_engine.php';
 require_once __DIR__ . '/rate_limiter.php';
 
 class TrackEngine {
@@ -32,53 +33,102 @@ class TrackEngine {
      * $source = 'pretest' for the initial paper pre-test based track,
      * $source = 'quiz' (default) for ongoing progress updates from real Moodle quiz data.
      *
-     * Skips regeneration (and the OpenAI call) when the underlying mastery/
-     * pathway evidence hasn't actually changed since the last stored track -
-     * e.g. a quiz resubmission that doesn't move any competency's mastery or
-     * LP. Avoids burning an AI call and rewriting a narrative that would
-     * come out materially the same.
+     * Under MasteryEngine::DECISION_MODE 'ai' the track's decisions - mastery
+     * tier, pathway, adaptive order, priority - are made by the model
+     * (DecisionEngine) from the student's evidence, in the same call that
+     * writes the narrative. The stored track records who decided it
+     * ('decision' => by/model/decided_at/evidence_signature) because the
+     * quiz gate reads the stored decision back (MasteryEngine::currentPathway()).
+     *
+     * Skips regeneration (and the model call) when the EVIDENCE hasn't
+     * changed since the last AI-decided track - a resubmission that moves no
+     * index and passes no new quiz. A track whose decision came from the
+     * formula fallback is always retried, so a student is not left on the
+     * fallback any longer than the outage lasts.
+     *
+     * Fallback: when the model is unavailable or answers unusably, the
+     * LP_MODE formula decides instead and the narrative is written by the
+     * older narrative-only call (or, failing that too, the previous
+     * narrative is kept). The refreshed FACTS are always stored so the
+     * per-quiz checklist never lags because prose could not be written.
      */
     public function generateTrack($userid, $studentName, $source = 'quiz') {
         $this->laststored = false;
 
-        $fullTrack = $this->mastery->computeFullTrack($userid, $source);
-        $signature = $this->evidenceSignature($fullTrack);
+        $evidence = $this->mastery->computeFullEvidence($userid, $source);
+        $signature = MasteryEngine::evidenceSignature($evidence);
 
+        $previous = null;
         $previousNarrative = null;
         $existing = $this->getStoredTrack($userid);
         if ($existing) {
             $previous = json_decode($existing->track_json, true);
-            $previousNarrative = $previous['narrative'] ?? null;
-            $previousSignature = $this->evidenceSignature($previous['competencies'] ?? []);
-            if ($previousSignature === $signature) {
-                return $previous;
+            if (is_array($previous)) {
+                $previousNarrative = $previous['narrative'] ?? null;
+                $previousby = $previous['decision']['by'] ?? null;
+                $previoussig = $previous['decision']['evidence_signature'] ?? null;
+                if (MasteryEngine::DECISION_MODE === 'ai') {
+                    if ($previousby === 'ai' && $previoussig === $signature) {
+                        return $previous;
+                    }
+                } else if ($previoussig === $signature && $previousby !== null) {
+                    return $previous;
+                }
             }
         }
 
-        // A failed narrative call must not cost the student their refreshed
-        // FACTS. Previously any exception here (an OpenAI rate limit is the
-        // common one) aborted the whole update, so the stored per-quiz
-        // checklist and mastery figures stayed at their old values until some
-        // later submission happened to succeed. The prose is the only part
-        // that actually needs OpenAI, so it falls back to the last narrative
-        // and the recomputed competencies are stored regardless. With no
-        // previous narrative to fall back on there is nothing to store, so
-        // the error still propagates to the caller.
-        try {
-            $narrative = $this->generateNarrative($studentName, $fullTrack, $source);
-        } catch (Exception $e) {
-            if (!is_array($previousNarrative) || empty($previousNarrative)) {
-                throw $e;
+        $decision = [
+            'by' => 'rule',
+            'model' => null,
+            'decided_at' => time(),
+            'evidence_signature' => $signature,
+            'fallback_reason' => null,
+        ];
+        $competencies = null;
+        $narrative = null;
+
+        if (MasteryEngine::DECISION_MODE === 'ai') {
+            try {
+                $engine = new DecisionEngine();
+                $decided = $engine->decide($evidence, $studentName, $source);
+                $competencies = $decided['competencies'];
+                $narrative = $decided['narrative'];
+                $decision['by'] = 'ai';
+                $decision['model'] = DecisionEngine::MODEL;
+            } catch (Exception $e) {
+                // Logged, then decided by the formula below. The student gets
+                // a rule-decided track now and an AI-decided one on their
+                // next trigger (see the retry note in the docblock).
+                error_log('AccuLearn: AI decision failed for user ' . $userid
+                    . ', falling back to the rule: ' . $e->getMessage());
+                $decision['fallback_reason'] = $e->getMessage();
             }
-            error_log('AccuLearn: keeping previous track narrative for user ' . $userid
-                . ' after narrative generation failed: ' . $e->getMessage());
-            $narrative = $previousNarrative;
+        }
+
+        if ($competencies === null) {
+            $competencies = $this->mastery->computeFullTrack($userid, $source);
+            try {
+                $narrative = $this->generateNarrative($studentName, $competencies, $source);
+            } catch (Exception $e) {
+                // A failed narrative call must not cost the student their
+                // refreshed FACTS. The prose is the only part that needs the
+                // model, so fall back to the last narrative and store the
+                // recomputed competencies regardless. With no previous
+                // narrative there is nothing to store, so the error propagates.
+                if (!is_array($previousNarrative) || empty($previousNarrative)) {
+                    throw $e;
+                }
+                error_log('AccuLearn: keeping previous track narrative for user ' . $userid
+                    . ' after narrative generation failed: ' . $e->getMessage());
+                $narrative = $previousNarrative;
+            }
         }
 
         $record = [
-            'competencies' => $fullTrack,
+            'competencies' => $competencies,
             'narrative' => $narrative,
             'source' => $source,
+            'decision' => $decision,
         ];
 
         $db = get_db();
@@ -94,53 +144,20 @@ class TrackEngine {
     }
 
     /**
-     * Reduces a full track to just the fields that should trigger a
-     * regeneration if they change (mastery classification, assigned pathway,
-     * and per-quiz pass status) - CM/CMI/GI can shift slightly between
-     * attempts without crossing a mastery/LP boundary, and that shouldn't
-     * be enough to re-narrate the track.
-     *
-     * PER-QUIZ STATUS IS PART OF THE SIGNATURE, and has to be. Without it the
-     * stored checklist froze: a student who passed a formative quiz did not
-     * necessarily move any mastery band (still "Developing" until the
-     * summative is passed too), did not change LP (still 3), and did not
-     * change priority group (still "next") - so the signature matched, the
-     * write was skipped, and their track went on displaying that quiz as
-     * "not taken" indefinitely. Real case on this site: user 6's Formative
-     * Quiz 3 was sat on 7 Aug and regraded to a pass on 9 Aug, yet the track
-     * still showed it untaken on 10 Aug, because no intervening change ever
-     * crossed a band boundary. Quiz pass status is exactly the thing the
-     * checklist renders, so it is exactly what must be able to invalidate it.
+     * Whether a stored track's decision no longer matches the student's
+     * current evidence - i.e. something changed outside a quiz submission
+     * (a regrade, a granted extra attempt that was then used) and the
+     * decision should be made again. Only meaningful for AI-decided tracks;
+     * rule-era tracks are never reported stale here, because regenerating
+     * them would overwrite the study's stored tracks with a different rule.
      */
-    private function evidenceSignature($fullTrack) {
-        $sig = [];
-        foreach ($fullTrack as $t) {
-            // priority_group is included so a change in the ADAPTIVE ORDER
-            // regenerates the narrative even when no mastery/LP boundary was
-            // crossed - otherwise the "what to focus on next" paragraph could
-            // keep naming a competency that is no longer the recommended one
-            // (e.g. a competency crossing the CMI misconception threshold).
-            // It also means tracks stored before adaptive ordering existed
-            // have no priority_group, so their signature differs and they
-            // regenerate once, automatically, on the next trigger.
-            $quizzes = [];
-            foreach (($t['quizzes'] ?? []) as $q) {
-                $quizzes[(int) $q['id']] = [
-                    !empty($q['attempted']) ? 1 : 0,
-                    !empty($q['passed']) ? 1 : 0,
-                ];
-            }
-            ksort($quizzes);
-
-            $sig[$t['competency_id']] = [
-                $t['mastery'] ?? null,
-                $t['lp'] ?? null,
-                $t['priority_group'] ?? null,
-                $quizzes,
-            ];
+    public function storedTrackIsStale($userid) {
+        $track = $this->mastery->storedTrack($userid);
+        if ($track === null || (($track['decision']['by'] ?? null) !== 'ai')) {
+            return false;
         }
-        ksort($sig);
-        return $sig;
+        $evidence = $this->mastery->computeFullEvidence($userid, $track['source'] ?? 'quiz');
+        return MasteryEngine::evidenceSignature($evidence) !== ($track['decision']['evidence_signature'] ?? null);
     }
 
     private function generateNarrative($studentName, $fullTrack, $source) {
@@ -155,7 +172,7 @@ class TrackEngine {
 
         $systemPrompt = "You are AccuLearn's track summary assistant for FABM 1 bookkeeping. "
             . "You are given a student's mastery status and assigned learning pathway for each of 7 competencies, "
-            . "already determined by the system's rules. You do NOT change, question, or reinterpret these pathway "
+            . "already determined by the system's fallback rule. You do NOT change, question, or reinterpret these pathway "
             . "assignments. Your only job is to explain the track to the student in an encouraging, plain-language way, "
             . "and to give a short overview of what they should focus on next. $context\n"
             . "The list is given to you in the system's ADAPTIVE ORDER, not in curriculum order. Each entry has a "

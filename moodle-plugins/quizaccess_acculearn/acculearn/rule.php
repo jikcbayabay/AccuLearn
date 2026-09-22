@@ -60,7 +60,14 @@ class quizaccess_acculearn extends access_rule_base {
             // competency has not been mastered, this whole course is shut and
             // "go and do the lesson" would be misleading advice - the lesson
             // itself may be restricted by the AccuLearn Unlocked group.
-            $result = $engine->computeLearningPathway($USER->id, $competencyid, 'quiz');
+            //
+            // The pathway is the AI's STORED decision from the student's
+            // latest track (made after their last submission), falling back
+            // to the formula for a student who has no decided track yet -
+            // see MasteryEngine::currentPathway(). It is deliberately not
+            // recomputed here: that would put a model call on every quiz
+            // page view.
+            $result = $engine->currentPathway($USER->id, $competencyid);
             if ($result['lp'] === 1) {
                 return get_string('prerequisiteblocked', 'quizaccess_acculearn');
             }
