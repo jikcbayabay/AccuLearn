@@ -23,7 +23,8 @@ echo "User $userid, source $source, evidence signature "
 
 $t0 = microtime(true);
 try {
-    $decided = (new DecisionEngine())->decide($evidence, '[STUDENT]', $source);
+    $decided = (new DecisionEngine())->decide($evidence, '[STUDENT]', $source,
+        $mastery->formulaDecisions($userid, $source));
 } catch (Exception $e) {
     echo "AI DECISION FAILED (the rule would be used): " . $e->getMessage() . "\n";
     exit(1);

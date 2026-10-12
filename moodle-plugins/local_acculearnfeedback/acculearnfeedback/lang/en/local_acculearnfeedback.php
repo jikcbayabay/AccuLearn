@@ -12,6 +12,8 @@ $string['acculearnfeedback:revealstudentnames'] = 'Reveal real student names in 
 $string['acculearnfeedback:managesequence'] = 'Manage competency sequence, prerequisites and gating';
 $string['acculearnfeedback:viewusagelogs'] = 'View AccuLearn system usage/engagement logs';
 $string['acculearnfeedback:viewowntrack'] = 'View own personalised learning track';
+$string['acculearnfeedback:viewcompletion'] = 'View which lessons and quizzes each student has completed';
+$string['acculearnfeedback:managequizquestions'] = 'Add and edit the questions in the AccuLearn quiz difficulty pools';
 
 // Privacy metadata.
 // This string said "anonymized performance data" until 2026-08-29, which was

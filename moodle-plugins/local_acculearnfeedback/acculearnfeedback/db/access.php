@@ -67,4 +67,41 @@ $capabilities = [
         ],
     ],
 
+
+    /*
+     * Teachers only (2026-10-05): admin accounts are also refused in code,
+     * because a site admin passes every capability check.
+     *
+     * The Quiz Questions page: see each quiz's Easy/Medium/Hard pools and add
+     * or edit the questions in them. The page itself only reads; the editing
+     * happens in Moodle's own question bank, which checks moodle/question:*
+     * in the bank's context. Those are granted to the AccuLearn teacher role
+     * alongside this one (db/upgrade.php, 2026100500).
+     */
+    /*
+     * Activity Completion (completion.php): which lessons and quizzes each
+     * student has done. Teachers only since 2026-10-08 (it was an admin page
+     * gated on viewusagelogs); admin accounts are refused in code as well,
+     * because a site admin passes every capability check. Students appear
+     * under pseudonyms unless the viewer also holds revealstudentnames,
+     * which the teacher role does not.
+     */
+    'local/acculearnfeedback:viewcompletion' => [
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes' => [
+            'editingteacher' => CAP_ALLOW,
+        ],
+    ],
+
+    'local/acculearnfeedback:managequizquestions' => [
+        'captype' => 'write',
+        'riskbitmask' => RISK_XSS,
+        'contextlevel' => CONTEXT_SYSTEM,
+        // Teachers only - deliberately not the manager archetype.
+        'archetypes' => [
+            'editingteacher' => CAP_ALLOW,
+        ],
+    ],
+
 ];

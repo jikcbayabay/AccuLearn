@@ -71,16 +71,18 @@ function local_acculearnfeedback_sync_unlock_groups_for_user($userid) {
     }
     require_once($backendpath);
     require_once($CFG->dirroot . '/group/lib.php');
+    require_once($CFG->libdir . '/enrollib.php');
 
     $engine = new MasteryEngine();
+    $isstaff = local_acculearnfeedback_is_staff_account($userid);
+    $studentrole = $DB->get_record('role', ['shortname' => 'student']);
+    $manual = enrol_get_plugin('manual');
     $competencies = $DB->get_records_sql(
         "SELECT * FROM acculearn_competencies WHERE courseid IS NOT NULL");
 
     foreach ($competencies as $c) {
         $context = context_course::instance($c->courseid);
-        if (!is_enrolled($context, $userid)) {
-            continue;
-        }
+        $enrolled = is_enrolled($context, $userid);
 
         // Mirror quizaccess_acculearn/rule.php exactly: teachers/managers are
         // never gated, so they must never end up excluded from the unlock
@@ -97,6 +99,42 @@ function local_acculearnfeedback_sync_unlock_groups_for_user($userid) {
             $unlocked = ($result['lp'] !== 1);
         } else {
             $unlocked = true;
+        }
+
+        // Enrol where the decision has opened this competency. Unlock-group
+        // membership only controls what a student sees INSIDE a course, so
+        // without this a learner whose pathway advances past their current
+        // competency still cannot reach the next one - they were never
+        // enrolled in its course. This is what makes the AI's sequence
+        // actually move a student forward rather than just describe where
+        // they should be.
+        //
+        // Additive only. A competency that later re-locks removes the student
+        // from the unlock group (below) but leaves the enrolment alone:
+        // unenrolling would orphan their attempts and grades in that course,
+        // and the group is already sufficient to close access.
+        //
+        // Staff are excluded - they hold their own roles and must never be
+        // silently given a student enrolment.
+        if ($unlocked && !$enrolled && !$isstaff && $studentrole) {
+            $instance = $DB->get_record('enrol', [
+                'courseid' => $c->courseid,
+                'enrol' => 'manual',
+                'status' => ENROL_INSTANCE_ENABLED,
+            ]);
+            if ($instance && $manual) {
+                $manual->enrol_user($instance, $userid, $studentrole->id);
+                $enrolled = true;
+                local_acculearnfeedback_log_usage($userid, 'auto_enrolled', 'course',
+                    $c->courseid,
+                    'Enrolled automatically - the learning path opened this competency',
+                    $c->courseid);
+            }
+        }
+
+        if (!$enrolled) {
+            // Still locked and never enrolled: nothing to add them to yet.
+            continue;
         }
 
         $groupid = local_acculearnfeedback_ensure_unlock_group($c->courseid);
@@ -1086,6 +1124,54 @@ function local_acculearnfeedback_before_standard_html_head() {
  * Uses before_footer since Boost's extend_navigation placement is
  * inconsistent across Moodle versions - this guarantees visibility.
  */
+/**
+ * True when the current user is an administrator rather than a learner.
+ *
+ * A site admin passes every has_capability() check implicitly, so a capability
+ * grant alone cannot distinguish "student" from "admin" - hence the explicit
+ * is_siteadmin() test. The two capabilities catch the admin roles that are not
+ * site admins: itadmin holds viewusagelogs, manager and superadmin hold
+ * managesequence.
+ *
+ * Used to keep the student-facing track and pre-test out of staff accounts,
+ * which have neither.
+ *
+ * @return bool
+ */
+function local_acculearnfeedback_is_staff_account($userid = null) {
+    $context = context_system::instance();
+    // null means "the current user" to both is_siteadmin() and has_capability(),
+    // so the no-argument calls in the toolbar keep working unchanged.
+    return is_siteadmin($userid)
+        || has_capability('local/acculearnfeedback:managesequence', $context, $userid)
+        || has_capability('local/acculearnfeedback:viewusagelogs', $context, $userid);
+}
+
+/**
+ * True when the current user may use the Quiz Questions page.
+ *
+ * Teachers only. The capability alone is not enough: a site admin passes every
+ * has_capability() check implicitly, so admin accounts are excluded explicitly
+ * here, the same way the student-facing track keeps them out.
+ *
+ * @return bool
+ */
+function local_acculearnfeedback_can_manage_quiz_questions() {
+    return has_capability('local/acculearnfeedback:managequizquestions', context_system::instance())
+        && !local_acculearnfeedback_is_staff_account();
+}
+
+/**
+ * True when the current user may use the Activity Completion page.
+ * Teachers only, for the same reason as the Quiz Questions page above.
+ *
+ * @return bool
+ */
+function local_acculearnfeedback_can_view_completion() {
+    return has_capability('local/acculearnfeedback:viewcompletion', context_system::instance())
+        && !local_acculearnfeedback_is_staff_account();
+}
+
 function local_acculearnfeedback_before_footer() {
     global $CFG;
 
@@ -1098,12 +1184,20 @@ function local_acculearnfeedback_before_footer() {
     $canviewlogs = has_capability('local/acculearnfeedback:viewusagelogs', $context);
     $canmanagesequence = has_capability('local/acculearnfeedback:managesequence', $context);
     $canviewowntrack = has_capability('local/acculearnfeedback:viewowntrack', $context);
+    $canmanagequestions = local_acculearnfeedback_can_manage_quiz_questions();
 
     $items = [];
 
     // Teachers do not get the student-facing track view - see db/access.php
     // for why this hangs off a capability rather than a role name check.
-    if ($canviewowntrack) {
+    //
+    // Administrators do not get it either. Nobody holding an admin role has a
+    // learning track of their own, so the page only ever rendered an empty
+    // dashboard for them. This needs an explicit is_siteadmin() test because a
+    // site admin passes every capability check implicitly, and the two staff
+    // capabilities below catch the admin roles that are not site admins -
+    // itadmin holds viewusagelogs, manager and superadmin hold managesequence.
+    if ($canviewowntrack && !local_acculearnfeedback_is_staff_account()) {
         $items[] = [
             'url' => $CFG->wwwroot . '/local/acculearnfeedback/my_track.php',
             'icon' => 'fa-route',
@@ -1119,11 +1213,32 @@ function local_acculearnfeedback_before_footer() {
         ];
     }
 
+    if ($canmanagequestions) {
+        $items[] = [
+            'url' => $CFG->wwwroot . '/local/acculearnfeedback/quiz_questions.php',
+            'icon' => 'fa-list-ol',
+            'label' => 'Quiz Questions',
+        ];
+    }
+
+    if (local_acculearnfeedback_can_view_completion()) {
+        $items[] = [
+            'url' => $CFG->wwwroot . '/local/acculearnfeedback/completion.php',
+            'icon' => 'fa-list-check',
+            'label' => 'Activity Completion',
+        ];
+    }
+
     if ($canviewlogs) {
         $items[] = [
             'url' => $CFG->wwwroot . '/local/acculearnfeedback/usage_logs.php',
             'icon' => 'fa-chart-line',
             'label' => 'Usage Logs',
+        ];
+        $items[] = [
+            'url' => $CFG->wwwroot . '/local/acculearnfeedback/ai_usage.php',
+            'icon' => 'fa-gauge-high',
+            'label' => 'AI Usage',
         ];
     }
 
@@ -1139,23 +1254,9 @@ function local_acculearnfeedback_before_footer() {
             'label' => 'Tag Questions',
         ];
         $items[] = [
-            'url' => $CFG->wwwroot . '/local/acculearnfeedback/admin_sequence.php',
-            'icon' => 'fa-sliders-h',
-            'label' => 'Sequence Settings',
-        ];
-        $items[] = [
             'url' => $CFG->wwwroot . '/local/acculearnfeedback/data_retention.php',
             'icon' => 'fa-trash-can',
             'label' => 'Data Retention',
-        ];
-    }
-
-    // Raw table browser - site administrators only, since it shows unfiltered rows.
-    if (has_capability('moodle/site:config', $context)) {
-        $items[] = [
-            'url' => $CFG->wwwroot . '/local/acculearnfeedback/db_browser.php',
-            'icon' => 'fa-database',
-            'label' => 'Database',
         ];
     }
 

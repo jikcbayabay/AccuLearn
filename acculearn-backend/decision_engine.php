@@ -10,18 +10,24 @@ require_once __DIR__ . '/feedback_engine.php';
  * how many items they rest on, and the per-quiz pass record), one
  * structured-output call to the model returns the DECISIONS: mastery tier,
  * learning pathway, adaptive order and priority group per competency, plus
- * the narrative that explains them. The model is not given the Chapter 3
- * formula - it decides from the evidence using its own judgment, and the
- * formula in MasteryEngine survives only as the fallback for when this call
- * fails (see TrackEngine::generateTrack()).
+ * the narrative that explains them.
+ *
+ * Since 2026-10-06 the model must follow the Chapter 3 formula for mastery
+ * and LP (MasteryEngine::PASSING_THRESHOLD documents it): the formula is
+ * stated in the prompt, and any answer whose mastery or LP differs from what
+ * the formula gives (MasteryEngine::formulaDecisions()) is sent back for
+ * correction and, failing that, rejected so the formula decides outright.
+ * What remains the model's own is the adaptive order, the single "next"
+ * competency, the priority groups, and all of the wording. Before
+ * 2026-10-06 the model was given no formula and decided freely.
  *
  * The decisions are applied directly: an LP of 1 locks the competency's
  * quizzes (quizaccess_acculearn) and removes the student from the course's
  * "AccuLearn Unlocked" group. Because of that, the response is checked here
  * for STRUCTURAL validity - every competency present exactly once, the
  * labels drawn from the fixed vocabulary the pages render, a single "next"
- * competency - and for COHERENCE between labels (see coherenceProblems()),
- * never for pedagogical agreement with the formula. A response that fails
+ * competency - and for agreement with the formula and COHERENCE between
+ * labels (see coherenceProblems()). A response that fails
  * those checks is rejected as a whole (an exception, after one corrective
  * retry for coherence), not patched into something the model did not say.
  */
@@ -30,7 +36,7 @@ class DecisionEngine {
     /** Model that makes the decisions. Recorded on every stored track. */
     const MODEL = 'gpt-4o-mini';
 
-    const MASTERY_LABELS = ['Mastered', 'Developing', 'Needs Improvement', 'Insufficient Evidence', 'Not Attempted'];
+    const MASTERY_LABELS = ['Mastered', 'Initial Mastery', 'Developing', 'Needs Improvement', 'Insufficient Evidence', 'Not Attempted'];
     const PRIORITY_GROUPS = ['next', 'revisit', 'upcoming', 'maintain'];
     /** What the model may put on a row; 'next' is set from next_competency_id instead. */
     const ROW_GROUPS = ['revisit', 'upcoming', 'maintain'];
@@ -49,6 +55,9 @@ class DecisionEngine {
      *   in curriculum (chain) order.
      * @param string $studentName the placeholder token, never a real name.
      * @param string $source 'quiz' or 'pretest'.
+     * @param array $formula MasteryEngine::formulaDecisions() for the same
+     *   student and source: competency id => pr, mastery, lp. The model is
+     *   given each pr and must reproduce each mastery and lp.
      * @return array ['competencies' => [...in adaptive order...], 'narrative' => [...]]
      *   Each competency row is the evidence row plus the decision fields:
      *   mastery, lp, lp_label, pr, blocked, priority_group, priority_rank,
@@ -56,7 +65,7 @@ class DecisionEngine {
      * @throws Exception when the model is unavailable or its answer is not
      *   structurally usable.
      */
-    public function decide(array $evidence, $studentName, $source = 'quiz') {
+    public function decide(array $evidence, $studentName, $source, array $formula) {
         if (empty($evidence)) {
             throw new Exception('DecisionEngine: no competencies to decide.');
         }
@@ -67,7 +76,7 @@ class DecisionEngine {
         }
 
         $system = $this->systemPrompt($source);
-        $user = $this->userPrompt($evidence, $studentName, $source);
+        $user = $this->userPrompt($evidence, $studentName, $source, $formula);
 
         $messages = [
             ['role' => 'system', 'content' => $system],
@@ -85,7 +94,7 @@ class DecisionEngine {
         // the same answer again. If it still cannot, the answer is rejected
         // and the formula decides: a self-contradictory track is worse than a
         // rule-decided one.
-        $problems = $this->coherenceProblems($decided['competencies'], $evidence);
+        $problems = $this->coherenceProblems($decided['competencies'], $evidence, $formula);
         $corrections = 0;
         while (!empty($problems) && $corrections < self::MAX_CORRECTIONS) {
             $corrections++;
@@ -93,10 +102,17 @@ class DecisionEngine {
             $messages[] = ['role' => 'assistant', 'content' => $rawtext];
             $messages[] = ['role' => 'user', 'content' =>
                 "Your answer above contradicts itself. Decide again, keeping everything that was "
-                . "coherent, and resolve every one of these:\n- " . implode("\n- ", $problems)];
+                . "coherent, and resolve every one of these:\n- " . implode("\n- ", $problems)
+                // Without this the model fixed the numbers and left the old
+                // wording behind - a locked competency still labelled "ready
+                // to start" - which the student would read as the decision.
+                . "\nFor every competency whose mastery or lp changes, rewrite its lp_label, "
+                . "priority_reason and rationale to match the new values, and make the narrative "
+                . "agree with them too. A competency at lp 1 is locked: say it opens once the "
+                . "competency it builds on reaches the 70% passing level."];
             list($raw, $rawtext) = $this->callModel($messages, $this->schema());
             $decided = $this->validate($raw, $evidence);
-            $problems = $this->coherenceProblems($decided['competencies'], $evidence);
+            $problems = $this->coherenceProblems($decided['competencies'], $evidence, $formula);
         }
         if (!empty($problems)) {
             throw new Exception("DecisionEngine: answer still contradicts itself after $corrections correction(s): "
@@ -117,10 +133,10 @@ class DecisionEngine {
             : "This is an UPDATE from the student's live quiz performance in the course so far.";
 
         return "You are AccuLearn's adaptive-learning decision model for a Grade 11 FABM 1 "
-            . "(Fundamentals of Accountancy, Business and Management 1) bookkeeping course. You decide, "
-            . "for every competency, the student's mastery status, their learning pathway, and the "
-            . "adaptive order in which the competencies should be presented to them. You then explain "
-            . "those decisions to the student.\n\n"
+            . "(Fundamentals of Accountancy, Business and Management 1) bookkeeping course. For every "
+            . "competency you apply AccuLearn's fixed rule for mastery status and learning pathway, then "
+            . "decide the adaptive order in which the competencies should be presented to the student, "
+            . "and explain all of it to them.\n\n"
             . "Your decisions are applied directly by the system, so they carry real consequences: a "
             . "pathway of 1 locks that competency's quizzes until an earlier competency is mastered, and "
             . "the competency you mark 'next' is the one the student is told to work on now.\n\n"
@@ -129,8 +145,8 @@ class DecisionEngine {
             . "Seven competencies, listed in curriculum order. Each is taught as its own course of "
             . "lessons with formative (practice) quizzes at an 80% pass mark and one summative quiz at an "
             . "85% pass mark. Each competency builds on the one before it (the five major accounts must be "
-            . "understood before journalizing them, and so on), so a weak earlier competency is a reason to "
-            . "hold a later one - but readiness is your judgment to make from the evidence.\n\n"
+            . "understood before journalizing them, and so on). Readiness for a competency is measured by "
+            . "the system and given to you as pr (see the rule below).\n\n"
             . "THE EVIDENCE\n"
             . "Every item is answered under confidence-based marking: the student also rates their "
             . "confidence 1 (a guess), 2 (fairly sure) or 3 (certain).\n"
@@ -144,9 +160,9 @@ class DecisionEngine {
             . "- quizzes: the student's record on each quiz in that competency (attempted, grade, pass "
             . "mark, passed). Null cm/cmi/gi means nothing has been answered in that competency.\n\n"
             . "YOUR OUTPUT VOCABULARY (use these labels exactly)\n"
-            . "mastery: 'Mastered' | 'Developing' | 'Needs Improvement' | 'Insufficient Evidence' "
-            . "(looks capable but on too little evidence to call mastered) | 'Not Attempted'.\n"
-            . "lp (learning pathway) - decide for EVERY competency whether it is LOCKED or OPEN:\n"
+            . "mastery: 'Mastered' | 'Initial Mastery' | 'Developing' | 'Needs Improvement' | "
+            . "'Insufficient Evidence' (looks capable but on too little evidence) | 'Not Attempted'.\n"
+            . "lp (learning pathway) - what each value means:\n"
             . "  1 = Prerequisite Review: the student is NOT ready for this competency; its quizzes are "
             . "LOCKED until they finish an earlier one. Any competency the student should not be "
             . "attempting yet is 1, whether or not it has evidence.\n"
@@ -163,24 +179,37 @@ class DecisionEngine {
             . "worth clearing before it affects later topics; 'upcoming' = not finished yet (this is "
             . "also what you put on the next_competency_id competency itself); 'maintain' = mastered, "
             . "optional review only.\n"
-            . "WHAT THE LABELS COMMIT YOU TO (these are consequences of the labels' meaning, not a "
-            . "scoring rule)\n"
-            . "- 'Not Attempted' is for a competency with NO evidence at all (no items, no quiz "
-            . "attempted). 'Insufficient Evidence' is for SOME evidence that is too thin to call "
-            . "mastered.\n"
-            . "- 'Mastered' goes with lp 3 or 4 only, and lp 4 goes with 'Mastered' only. 'revisit' and "
-            . "'maintain' are groups for MASTERED competencies only; anything not mastered is "
-            . "'upcoming'.\n"
-            . "- lp 4 means mastered and finished: the competency that builds on it is now open, so "
-            . "that next competency must NOT be lp 1.\n"
-            . "- An OPEN competency (lp 0, 2, 3 or 4) cannot build on a LOCKED one (lp 1): if the "
-            . "student is not ready for a competency, they are not ready for anything that builds on "
-            . "it either.\n"
+            . "HOW MASTERY AND PATHWAY ARE DECIDED - a fixed rule; apply it exactly, never override it\n"
+            . "Each competency carries pr, its prerequisite readiness as measured by the system: 1 when "
+            . "the competency it builds on has reached the 70% passing level on at least 8 answered "
+            . "items (always 1 for a competency that builds on nothing), otherwise 0. Use pr exactly as "
+            . "given.\n"
+            . "mastery, from cm, attempted and evidence_source:\n"
+            . "- cm null (nothing answered): 'Not Attempted'.\n"
+            . "- fewer than 8 items answered: 'Insufficient Evidence' if cm is 70 or above, otherwise "
+            . "'Needs Improvement'.\n"
+            . "- cm 85 or above: 'Mastered' when evidence_source is 'quiz'; 'Initial Mastery' when it is "
+            . "'pretest' (a strong diagnostic is a placement, not an achievement).\n"
+            . "- cm 70 to below 85: 'Developing'.\n"
+            . "- cm below 70: 'Needs Improvement'.\n"
+            . "lp - check these in order and use the FIRST that applies:\n"
+            . "  1 if pr = 0\n"
+            . "  0 if cm is null (nothing answered yet)\n"
+            . "  2 if cm < 70\n"
+            . "  3 if cm < 85\n"
+            . "  3 if gi >= 0.20 (a strong score that leans on guessing)\n"
+            . "  3 if cmi >= 0.20 (a strong score hiding confident wrong answers)\n"
+            . "  3 if mastery is not 'Mastered' (too few items, or only a pre-test placement)\n"
+            . "  4 otherwise.\n"
+            . "WHAT IS YOURS TO DECIDE\n"
             . "- next_competency_id is where the student works NOW, so it must be a competency whose "
             . "quizzes are open and unfinished: never lp 1 (locked) and never lp 4 (already finished). "
-            . "If you advance a competency, the next one after it is where the student works now.\n"
+            . "Prefer the earliest such competency in curriculum order unless the evidence gives a clear "
+            . "reason otherwise. It is 0 only if no competency is open and unfinished.\n"
+            . "- group: 'revisit' and 'maintain' are for 'Mastered' competencies only; anything not "
+            . "mastered is 'upcoming'.\n"
             . "- Everything you write to the student must agree with these labels: do not tell them to "
-            . "move on to a competency you have left locked.\n"
+            . "move on to a competency that is locked.\n"
             . "Return the competencies in the ADAPTIVE ORDER the student should see them: what to do "
             . "now first, then anything to revisit, then what is coming up, then what is maintained. "
             . "Include every competency exactly once. Nothing is skipped or removed - you are ordering "
@@ -197,15 +226,14 @@ class DecisionEngine {
             . "- narrative.overview, narrative.next_focus, narrative.encouragement: a plain-language, "
             . "encouraging summary of the whole track for the student. next_focus must be about the "
             . "next_competency_id competency.\n\n"
-            . "You are not given a scoring formula. Decide from the evidence with sound pedagogical "
-            . "judgment, and be consistent: the same evidence should always lead to the same decision. "
+            . "Be consistent: the same evidence must always lead to the same decision. "
             . "Never tell the student a competency has been skipped or removed.\n"
             . "The student is identified to you only as the literal token "
             . FeedbackEngine::STUDENT_PLACEHOLDER . ". Address them using that exact token wherever you "
             . "would use a name, and never invent or guess a real name.";
     }
 
-    private function userPrompt(array $evidence, $studentName, $source) {
+    private function userPrompt(array $evidence, $studentName, $source, array $formula) {
         $rows = [];
         foreach ($evidence as $e) {
             // A pre-test placement is made from the paper pre-test alone, as
@@ -234,6 +262,11 @@ class DecisionEngine {
                 'sequence' => (int) $e['sequence'],
                 'name' => $e['competency_name'],
                 'builds_on_competency_id' => $e['prerequisite_id'],
+                // Measured by the system rather than left to the model: for a
+                // quiz-sourced track it rests on the prerequisite's QUIZ
+                // record, which this row does not show in full.
+                'pr' => (int) $formula[(int) $e['competency_id']]['pr'],
+                'evidence_source' => $e['evidence_source'] ?? $source,
                 // A readable restatement of the figures below it, so the
                 // model does not have to reconstruct "how much evidence is
                 // this" from raw fields - its first answers over-read a
@@ -290,7 +323,7 @@ class DecisionEngine {
      * @param array $decided validated rows (any order)
      * @param array $evidence the evidence rows, for the prerequisite chain
      */
-    private function coherenceProblems(array $decided, array $evidence) {
+    private function coherenceProblems(array $decided, array $evidence, array $formula) {
         $byid = [];
         $nextid = 0;
         foreach ($decided as $d) {
@@ -304,22 +337,21 @@ class DecisionEngine {
             $id = (int) $e['competency_id'];
             $d = $byid[$id];
             $name = $e['competency_name'];
+            $rule = $formula[$id];
 
-            $noevidence = ((int) $e['attempted'] === 0)
-                && empty(array_filter($e['quizzes'] ?? [], function ($q) { return !empty($q['attempted']); }));
-            if ($noevidence && $d['mastery'] !== 'Not Attempted') {
-                $problems[] = "'$name' has no evidence at all, so its mastery must be 'Not Attempted', not '{$d['mastery']}'.";
+            // Mastery and LP are the formula's, not the model's. Compared as
+            // decided values (lp null = "0, not yet assessed").
+            if ($d['mastery'] !== $rule['mastery']) {
+                $problems[] = "'$name' has cm " . ($e['cm'] === null ? 'null' : $e['cm'])
+                    . " on " . (int) $e['attempted'] . " items (evidence_source "
+                    . ($e['evidence_source'] ?? 'quiz') . "), so by the rule its mastery is '{$rule['mastery']}', not '{$d['mastery']}'.";
             }
-            if (!$noevidence && $d['mastery'] === 'Not Attempted') {
-                $problems[] = "'$name' has evidence, so its mastery cannot be 'Not Attempted'.";
+            if ($d['lp'] !== $rule['lp']) {
+                $problems[] = "'$name' has pr {$rule['pr']}, cm " . ($e['cm'] === null ? 'null' : $e['cm'])
+                    . ", gi " . ($e['gi'] ?? 'null') . ", cmi " . ($e['cmi'] ?? 'null')
+                    . ", so by the rule its lp is " . ($rule['lp'] ?? 0) . ", not " . ($d['lp'] ?? 0) . ".";
             }
 
-            if ($d['mastery'] === 'Mastered' && !in_array($d['lp'], [3, 4], true)) {
-                $problems[] = "'$name' is 'Mastered' but has lp " . ($d['lp'] ?? 0) . ": a mastered competency is lp 3 or 4.";
-            }
-            if ($d['lp'] === 4 && $d['mastery'] !== 'Mastered') {
-                $problems[] = "'$name' is lp 4 (advance) but its mastery is '{$d['mastery']}': lp 4 goes with 'Mastered' only.";
-            }
             if (in_array($d['priority_group'], ['revisit', 'maintain'], true) && $d['mastery'] !== 'Mastered') {
                 $problems[] = "'$name' is grouped '{$d['priority_group']}' but is not 'Mastered': that group is for mastered competencies only; use 'upcoming'.";
             }
@@ -328,14 +360,6 @@ class DecisionEngine {
             }
             if ($d['priority_group'] !== 'next' && $d['lp'] !== 4 && $d['lp'] !== 1 && $nextid === 0) {
                 $problems[] = "next_competency_id is 0 (everything mastered) but '$name' is open and unfinished (lp " . ($d['lp'] ?? 0) . ").";
-            }
-
-            $prereq = $e['prerequisite_id'] !== null ? ($byid[(int) $e['prerequisite_id']] ?? null) : null;
-            if ($prereq !== null && $prereq['lp'] === 4 && $d['lp'] === 1) {
-                $problems[] = "'{$prereq['competency_name']}' is lp 4 (advance), so '$name', which builds on it, cannot be lp 1 (locked).";
-            }
-            if ($prereq !== null && $prereq['lp'] === 1 && $d['lp'] !== 1) {
-                $problems[] = "'{$prereq['competency_name']}' is lp 1 (locked), so '$name', which builds on it, cannot be open (lp " . ($d['lp'] ?? 0) . "); it must be lp 1 too.";
             }
         }
         return $problems;

@@ -51,6 +51,13 @@ public function getAttemptDetails($attemptid) {
                 WHEN 'gradedright' THEN 1
                 WHEN 'gradedpartial' THEN 0
                 WHEN 'gradedwrong' THEN 0
+                -- mangr* = a teacher regraded this question by hand. Kept in
+                -- step with mastery_engine.php: without these, feedback would
+                -- lecture a student on why an answer was wrong that their
+                -- teacher had already marked right.
+                WHEN 'mangrright' THEN 1
+                WHEN 'mangrpartial' THEN 0
+                WHEN 'mangrwrong' THEN 0
                 ELSE 0
             END AS is_correct
         FROM mdl_qbehaviour_confidence qbc

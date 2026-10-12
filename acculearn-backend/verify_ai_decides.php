@@ -7,8 +7,10 @@
  *
  * Three tests:
  *   1. DIFFERENTIAL  the model's decision and the formula's, on identical
- *                    evidence, side by side. Every disagreement is a decision
- *                    the formula did not make. (Stores nothing.)
+ *                    evidence, side by side. Since 2026-10-06 the model must
+ *                    follow the formula, so mastery and LP should now AGREE
+ *                    on every row; what may still differ is the order and
+ *                    the "next" pick. (Stores nothing.)
  *   2. PROVENANCE    what the stored track says about who decided it.
  *   3. ABLATION      the model is made unreachable and the track regenerated:
  *                    it must fall back to the formula AND record that it did.
@@ -62,7 +64,8 @@ foreach ($mastery->computeFullTrack($userid, 'quiz') as $r) {
 }
 try {
     $t0 = microtime(true);
-    $ai = (new DecisionEngine())->decide($evidence, '[STUDENT]', 'quiz');
+    $ai = (new DecisionEngine())->decide($evidence, '[STUDENT]', 'quiz',
+        $mastery->formulaDecisions($userid, 'quiz'));
     $secs = microtime(true) - $t0;
 } catch (Exception $e) {
     say("  model call failed: " . $e->getMessage());

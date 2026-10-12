@@ -58,4 +58,35 @@ $observers = [
         'eventname' => '\core\event\course_viewed',
         'callback'  => '\local_acculearnfeedback\observer::course_viewed',
     ],
+
+    // Question bank changes. Re-tag the bank's questions to their competency
+    // (an edit in Moodle 5 is a new question id, which the mastery engine
+    // would otherwise not count) and re-point the quizzes' random slots at
+    // the difficulty pools - see classes/question_pools.php. internal => false
+    // so these run after the question's own transaction has committed.
+    [
+        'eventname' => '\core\event\question_created',
+        'callback'  => '\local_acculearnfeedback\observer::question_bank_changed',
+        'internal'  => false,
+    ],
+    [
+        'eventname' => '\core\event\question_updated',
+        'callback'  => '\local_acculearnfeedback\observer::question_bank_changed',
+        'internal'  => false,
+    ],
+    [
+        'eventname' => '\core\event\question_moved',
+        'callback'  => '\local_acculearnfeedback\observer::question_bank_changed',
+        'internal'  => false,
+    ],
+    [
+        'eventname' => '\core\event\question_deleted',
+        'callback'  => '\local_acculearnfeedback\observer::question_bank_changed',
+        'internal'  => false,
+    ],
+    [
+        'eventname' => '\core\event\questions_imported',
+        'callback'  => '\local_acculearnfeedback\observer::question_bank_changed',
+        'internal'  => false,
+    ],
 ];

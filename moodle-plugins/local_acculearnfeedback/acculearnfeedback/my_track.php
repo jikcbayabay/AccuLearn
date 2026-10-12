@@ -17,8 +17,77 @@ $PAGE->set_title('My Learning Track');
 // twice, one above the other. The page heading is meant to name the SITE.
 $PAGE->set_heading($SITE->fullname);
 
+// A student with no pre-test on record has no baseline, so there is nothing to
+// place them on. Send them to sit it rather than showing an empty track and
+// leaving them with no way to fix it. Staff are exempt - they hold the
+// capability implicitly but have no placement of their own.
+if (!local_acculearnfeedback_is_staff_account()) {
+    $haspretest = $DB->get_field_sql(
+        "SELECT COUNT(*) FROM acculearn_pretest_responses WHERE userid = ?", [$USER->id]);
+    if (!$haspretest) {
+        redirect(new moodle_url('/local/acculearnfeedback/pretest_take.php'),
+            'Before your learning track can be built, please take the short pre-test.',
+            null, \core\output\notification::NOTIFY_INFO);
+    }
+}
+
+// ---------------------------------------------------------------- refresh
+// Rebuilds this student's track on demand.
+//
+// Called inline rather than queued, unlike the post-submission rebuild. The
+// reason that one is queued is transaction visibility: it runs inside the
+// request that just wrote the quiz data, and the backend opens its own database
+// connection which cannot see uncommitted rows. Nothing is being written here -
+// the evidence was committed long ago - so there is nothing to race, and a
+// button that says "refresh" has to actually refresh rather than leave the
+// student staring at the same page hoping cron runs.
+//
+// force = true because an explicit refresh must rebuild even when the evidence
+// fingerprint is unchanged: a teacher override or a change to the decision rules
+// moves the verdict without moving the evidence.
+if (optional_param('action', '', PARAM_ALPHA) === 'refreshtrack' && confirm_sesskey()) {
+    $lastrefresh = (int) get_user_preferences('local_acculearnfeedback_lastrefresh', 0, $USER->id);
+    if (time() - $lastrefresh < 30) {
+        redirect($PAGE->url, 'Your track was just refreshed - please wait a few seconds before trying again.',
+            null, \core\output\notification::NOTIFY_INFO);
+    }
+    set_user_preference('local_acculearnfeedback_lastrefresh', time(), $USER->id);
+
+    $backend = '/var/www/html/acculearn-backend/track_engine.php';
+    if (!file_exists($backend)) {
+        redirect($PAGE->url, 'The learning engine is unavailable right now. Please try again later.',
+            null, \core\output\notification::NOTIFY_ERROR);
+    }
+    require_once($backend);
+    try {
+        $engine = new TrackEngine();
+        // '[STUDENT]' - the real name never reaches OpenAI.
+        $engine->generateTrack($USER->id, '[STUDENT]', 'quiz', true);
+        local_acculearnfeedback_sync_unlock_groups_for_user($USER->id);
+        local_acculearnfeedback_log_usage($USER->id, 'track_refreshed', 'track', null,
+            'Student refreshed their learning track');
+        redirect($PAGE->url, 'Your learning track has been rebuilt from your latest results.',
+            null, \core\output\notification::NOTIFY_SUCCESS);
+    } catch (Throwable $e) {
+        redirect($PAGE->url, 'Could not rebuild your track just now. Your existing track is unchanged.',
+            null, \core\output\notification::NOTIFY_ERROR);
+    }
+}
+
 echo $OUTPUT->header();
 echo $OUTPUT->heading('My Learning Track');
+
+echo html_writer::start_tag('form', ['method' => 'post', 'action' => $PAGE->url,
+    'style' => 'margin:0 0 14px;']);
+echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
+echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'refreshtrack']);
+echo html_writer::tag('button',
+    '<i class="fa fa-rotate-right" aria-hidden="true"></i> Refresh my track',
+    ['type' => 'submit', 'class' => 'al-btn']);
+echo html_writer::tag('span',
+    'Rebuilds your mastery levels and pathway from your latest quiz results.',
+    ['style' => 'margin-left:10px; font-size:0.88em; color:var(--al-ink-500);']);
+echo html_writer::end_tag('form');
 
 local_acculearnfeedback_log_usage($USER->id, 'view_track', 'track', null,
     'Opened their personalised learning track');
@@ -30,7 +99,7 @@ if (!$trackrow) {
     echo html_writer::div(
         html_writer::div('<i class="fa fa-route" aria-hidden="true"></i>', 'al-empty__icon') .
         html_writer::div('Your track isn\'t ready yet', 'al-empty__title') .
-        html_writer::div('This usually appears once your pre-test results are entered, or after you complete your first quiz.', 'al-empty__sub'),
+        html_writer::div('Your pre-test is recorded and your track is being prepared. This usually takes under a minute - please refresh shortly.', 'al-empty__sub'),
         'al-card al-empty'
     );
     echo html_writer::end_div();
@@ -63,15 +132,8 @@ if (!is_array($track) || empty($track['competencies'])) {
 $narrative = $track['narrative'] ?? [];
 $competencies = $track['competencies'];
 
-// Same teacher-override rule as view.php: a flagged track must stop showing
-// its AI prose, or flagging changes nothing the student actually reads. Only
-// the narrative is withheld - everything below it is recomputed from live
-// mastery data rather than generated, so suppressing it would hide the
-// student's real progress for no reason.
-$narrativeflagged = !empty($trackrow->flagged);
-if ($narrativeflagged) {
-    $narrative = [];
-}
+// The narrative is no longer suppressed. Flagging was removed from the review
+// queue - see view.php for why - so nothing withholds it any more.
 
 // The stored track is a SNAPSHOT, rewritten only when its evidence changes -
 // so its per-quiz checklist and mastery figures can lag the real gradebook
@@ -150,7 +212,12 @@ $groups = [
     'maintain' => [
         'heading' => 'Keep fresh',
         'icon' => 'fa-circle-check',
-        'blurb' => 'Already mastered. Optional review, weakest first - revisit any time.',
+        // Wording covers both routes into this bucket: a competency finished by
+        // passing its quizzes, and one the pre-test placed you past. Saying
+        // "already mastered" of the second was misleading - no quiz had been
+        // sat there at all.
+        'blurb' => 'Already strong - either you passed every quiz here, or your pre-test placed you '
+            . 'past it. Optional review, weakest first.',
     ],
 ];
 
@@ -182,6 +249,7 @@ if (!$hasgrouping) {
 // reads as a pass the student hasn't actually earned.
 $masterytones = [
     'Mastered' => 'mastered',
+    'Initial Mastery' => 'developing',
     'Developing' => 'developing',
     'Insufficient Evidence' => 'developing',
     'Needs Improvement' => 'needs',
@@ -189,6 +257,7 @@ $masterytones = [
 ];
 $masterydots = [
     'Mastered' => '#72b579',
+    'Initial Mastery' => '#5b8fc9',
     'Developing' => '#d9a441',
     'Insufficient Evidence' => '#d9a441',
     'Needs Improvement' => '#c97064',
@@ -196,6 +265,7 @@ $masterydots = [
 ];
 $masteryflags = [
     'Mastered' => 'mastered',
+    'Initial Mastery' => 'developing',
     'Developing' => 'developing',
     'Insufficient Evidence' => 'developing',
     'Needs Improvement' => 'needs',

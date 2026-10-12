@@ -68,7 +68,19 @@ class quizaccess_acculearn extends access_rule_base {
             // recomputed here: that would put a model call on every quiz
             // page view.
             $result = $engine->currentPathway($USER->id, $competencyid);
-            if ($result['lp'] === 1) {
+
+            // lp 1 means "an earlier competency is not mastered yet". A
+            // competency that builds on nothing has no earlier competency, so a
+            // stored lp 1 there is an invalid decision rather than a real lock
+            // (DecisionEngine now rejects it, but tracks decided before that
+            // check existed are still in the database). Showing the prerequisite
+            // message would name a competency that does not exist AND shut the
+            // student out of the only course they can reach, with no action
+            // available to them. Falling through instead reaches the lesson and
+            // restudy gates, which they can actually satisfy.
+            $hasprereq = $DB->get_field_sql(
+                "SELECT prerequisite_id FROM acculearn_competencies WHERE id = ?", [$competencyid]);
+            if ($result['lp'] === 1 && !empty($hasprereq)) {
                 return get_string('prerequisiteblocked', 'quizaccess_acculearn');
             }
         }
@@ -152,10 +164,39 @@ class quizaccess_acculearn extends access_rule_base {
             }
         }
         if ($maxattempts > 0 && $numprevattempts >= $maxattempts && !$thisquizpassed) {
+
+            // The student can reopen the quiz themselves by working through the
+            // lesson again. This is the documented cycle: three attempts, then
+            // mandatory restudy, then three more.
+            //
+            // Evaluated here, in the access path, rather than from a SCORM
+            // completion event. An event observer would have to fire at exactly
+            // the right moment and leave a durable record; if it ever missed,
+            // the student would be permanently stuck with no way to trigger a
+            // retry - the same deadlock pattern that stranded accounts whose
+            // enrolment sync never re-ran. Checking on access cannot deadlock:
+            // the condition is recomputed every time the student looks at the
+            // quiz, so a missed signal self-heals on the next page load.
+            $lesson = $this->lesson_restudied_since($lastattempt);
+            if ($lesson) {
+                $this->grant_restudy_attempts($numprevattempts, $maxattempts);
+                return false; // Reopened - they earned the next three attempts.
+            }
+
             $a = new stdClass();
             $a->attempts = $maxattempts;
             $a->competency = $this->get_competency_name($competencyid);
             $a->trackurl = (new moodle_url('/local/acculearnfeedback/my_track.php'))->out(false);
+
+            // Point at the actual lesson when this quiz has one, so the student
+            // is told what to do rather than who to ask.
+            $section = $this->section_lesson();
+            if ($section) {
+                $a->lesson = format_string($section->name);
+                $a->lessonurl = (new moodle_url('/mod/scorm/view.php', ['id' => $section->cmid]))->out(false);
+                return get_string('restudyreopen', 'quizaccess_acculearn', $a);
+            }
+
             return get_string('restudyprompt', 'quizaccess_acculearn', $a);
         }
 
@@ -200,7 +241,19 @@ class quizaccess_acculearn extends access_rule_base {
           ORDER BY cm.id", [$cm->section]);
 
         foreach ($lessons as $lesson) {
-            $finished = $DB->record_exists_sql("
+            // Moodle's own "Mark as done" counts too, checked first because it
+            // is the reliable signal. SCORM packages do not always report a
+            // status back - an old package, a browser that closed before the
+            // final commit, or a SCO that simply never sets lesson_status - and
+            // when that happens the student has genuinely worked through the
+            // lesson but the gate cannot see it, leaving them locked out of the
+            // quiz with nothing they can do about it. The manual checkbox is
+            // their way to say so.
+            $finished = $DB->record_exists_select('course_modules_completion',
+                'coursemoduleid = ? AND userid = ? AND completionstate > 0',
+                [$lesson->cmid, $USER->id]);
+
+            $finished = $finished || $DB->record_exists_sql("
                 SELECT 1
                   FROM {scorm_attempt} a
                   JOIN {scorm_scoes_value} v ON v.attemptid = a.id
@@ -215,6 +268,129 @@ class quizaccess_acculearn extends access_rule_base {
         }
 
         return null;
+    }
+
+
+    /**
+     * The SCORM lesson sitting in this quiz's own section, if there is one.
+     *
+     * Unlike outstanding_lesson() this does not care whether the student has
+     * finished it - callers want the lesson's identity, not its state.
+     *
+     * @return stdClass|null {cmid, scormid, name}
+     */
+    private function section_lesson() {
+        global $DB;
+        $cm = $this->quizobj->get_cm();
+        if (empty($cm->section)) {
+            return null;
+        }
+        return $DB->get_record_sql("
+            SELECT cm.id AS cmid, s.id AS scormid, s.name
+              FROM {course_modules} cm
+              JOIN {modules} m ON m.id = cm.module AND m.name = 'scorm'
+              JOIN {scorm} s ON s.id = cm.instance
+             WHERE cm.section = ? AND cm.visible = 1 AND cm.deletioninprogress = 0
+          ORDER BY cm.id
+             LIMIT 1", [$cm->section]);
+    }
+
+    /**
+     * True when the student has worked through this quiz's lesson AGAIN since
+     * their last attempt finished.
+     *
+     * "Again" is the whole point: a completion recorded before the failed
+     * attempts is the studying they already did, and accepting it would reopen
+     * the quiz instantly and make the restudy requirement meaningless. So the
+     * completion has to be stamped later than the last attempt.
+     *
+     * Fails CLOSED, unlike the other lesson check: if there is no lesson, or no
+     * finished attempt to compare against, the student simply stays blocked and
+     * the teacher override remains the escape hatch. Erring open here would
+     * hand out unlimited attempts.
+     *
+     * @param stdClass|null $lastattempt
+     * @return stdClass|null the lesson that was restudied, or null
+     */
+    private function lesson_restudied_since($lastattempt) {
+        global $DB, $USER;
+
+        if (empty($lastattempt) || empty($lastattempt->timefinish)) {
+            return null;
+        }
+        $lesson = $this->section_lesson();
+        if (!$lesson) {
+            return null;
+        }
+
+        // Re-ticking "Mark as done" after the failed attempts counts as
+        // restudying, on the same footing as a fresh SCORM completion. The
+        // timestamp test is what matters either way: a completion recorded
+        // BEFORE the attempts is the studying already done, and accepting it
+        // would reopen the quiz instantly.
+        $restudied = $DB->record_exists_select('course_modules_completion',
+            'coursemoduleid = ? AND userid = ? AND completionstate > 0 AND timemodified > ?',
+            [$lesson->cmid, $USER->id, $lastattempt->timefinish]);
+
+        $restudied = $restudied || $DB->record_exists_sql("
+            SELECT 1
+              FROM {scorm_attempt} a
+              JOIN {scorm_scoes_value} v ON v.attemptid = a.id
+              JOIN {scorm_element} e ON e.id = v.elementid
+             WHERE a.scormid = ? AND a.userid = ?
+               AND e.element IN ('cmi.core.lesson_status', 'cmi.completion_status')
+               AND v.value IN ('completed', 'passed')
+               AND v.timemodified > ?",
+            [$lesson->scormid, $USER->id, $lastattempt->timefinish]);
+
+        return $restudied ? $lesson : null;
+    }
+
+    /**
+     * Gives the student another block of attempts on this quiz.
+     *
+     * Uses Moodle's own per-user quiz override - the same mechanism a teacher
+     * would use by hand, so the extra attempts are visible and reversible in
+     * the usual place rather than hidden in plugin state. Only the attempts
+     * field is set; every other field stays null so the quiz's own dates and
+     * time limit continue to apply.
+     *
+     * The new ceiling is computed from attempts already taken, not by adding to
+     * whatever the override said last time, so a double page load cannot inflate
+     * it: calling this twice for the same situation produces the same number.
+     */
+    private function grant_restudy_attempts($numprevattempts, $maxattempts) {
+        global $DB, $USER, $CFG;
+
+        $quizid = $this->quizobj->get_quizid();
+        $newceiling = $numprevattempts + $maxattempts;
+
+        $existing = $DB->get_record('quiz_overrides', ['quiz' => $quizid, 'userid' => $USER->id]);
+        if ($existing) {
+            if ((int)$existing->attempts >= $newceiling) {
+                return; // Already granted for this cycle.
+            }
+            $existing->attempts = $newceiling;
+            $DB->update_record('quiz_overrides', $existing);
+        } else {
+            $DB->insert_record('quiz_overrides', (object)[
+                'quiz' => $quizid,
+                'userid' => $USER->id,
+                'attempts' => $newceiling,
+            ]);
+        }
+
+        // lib.php is not loaded for us in a quiz access rule, so pull it in
+        // before reaching for its logger.
+        $libpath = $CFG->dirroot . '/local/acculearnfeedback/lib.php';
+        if (file_exists($libpath)) {
+            require_once($libpath);
+        }
+        if (function_exists('local_acculearnfeedback_log_usage')) {
+            local_acculearnfeedback_log_usage($USER->id, 'quiz_reopened', 'quiz', $quizid,
+                'Quiz reopened for ' . $maxattempts . ' more attempts after restudying the lesson',
+                $this->quizobj->get_courseid());
+        }
     }
 
     /**

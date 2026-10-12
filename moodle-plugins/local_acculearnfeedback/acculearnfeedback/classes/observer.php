@@ -92,6 +92,7 @@ class observer {
     }
 
     public static function user_loggedin(\core\event\user_loggedin $event) {
+        global $DB;
         // $event->objectid is the user id for this event; ->userid is too, but
         // objectid is the documented target.
         try {
@@ -100,6 +101,27 @@ class observer {
             }
             local_acculearnfeedback_log_usage($event->objectid, 'session_start', 'session', null,
                 'Signed in to AccuLearn', null);
+
+            // Bring course access back in line with the stored learning-path
+            // decision.
+            //
+            // Without this, a student can deadlock: enrolment is only synced by
+            // the track task, the feedback task, or the staff "generate track"
+            // button. A learner whose track already exists but who is enrolled
+            // in nothing has no way to reach a quiz, so no task ever fires, so
+            // their enrolment is never corrected. Exactly that happened to any
+            // account whose track was built before auto-enrolment shipped.
+            //
+            // Only runs for a non-staff user who already has a track, so it is
+            // a no-op for staff and for anyone yet to sit the pre-test.
+            if (!local_acculearnfeedback_is_staff_account($event->objectid)) {
+                $hastrack = $DB->get_field_sql(
+                    "SELECT COUNT(*) FROM acculearn_learning_tracks WHERE userid = ?",
+                    [$event->objectid]);
+                if ($hastrack) {
+                    local_acculearnfeedback_sync_unlock_groups_for_user($event->objectid);
+                }
+            }
         } catch (\Throwable $e) {
             debugging('AccuLearn observer failed for session_start: ' . $e->getMessage(), DEBUG_DEVELOPER);
         }
@@ -161,5 +183,32 @@ class observer {
             return;
         }
         self::log($event, 'view_course', 'course', $event->courseid, $comp);
+    }
+
+    /**
+     * A question in some bank was created, edited, moved, hidden or deleted.
+     * Keeps acculearn_question_competency and the quizzes' difficulty pools
+     * in step with the bank - see classes/question_pools.php. Unlike the
+     * logging observers this is not about participants: it runs for teachers
+     * and admins, who are the ones editing questions.
+     */
+    public static function question_bank_changed(\core\event\base $event) {
+        global $DB;
+        try {
+            $contexts = [$event->contextid];
+            // A move can cross banks; the bank it left needs rebalancing too.
+            if (!empty($event->other['oldcategoryid'])) {
+                $old = $DB->get_field('question_categories', 'contextid', ['id' => $event->other['oldcategoryid']]);
+                if ($old) {
+                    $contexts[] = $old;
+                }
+            }
+            foreach (array_unique($contexts) as $contextid) {
+                question_pools::tag_untagged($contextid);
+                question_pools::rebalance_context($contextid);
+            }
+        } catch (\Throwable $e) {
+            debugging('AccuLearn question pool sync failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        }
     }
 }

@@ -35,7 +35,21 @@ class observer {
                 $record = (object)[
                     'attemptid'         => $attemptid,
                     'questionattemptid' => $qa->get_database_id(),
-                    'userid'            => $event->userid,
+                    // The ATTEMPT's owner, not $event->userid.
+                    //
+                    // $event->userid is whoever triggered the submission, which
+                    // is the student only when the student clicks submit
+                    // themselves. It is NOT the student when the attempt is
+                    // auto-submitted by mod_quiz's update_overdue_attempts
+                    // scheduled task (cron, userid 0), when a teacher finishes
+                    // an attempt on a student's behalf, or when an attempt is
+                    // created by a script. In every one of those cases the
+                    // confidence rows were written against the wrong user, and
+                    // because the mastery engine reads this table with
+                    // "WHERE userid = ?", that student's CBM evidence simply
+                    // vanished - no CM, no CMI, no GI, and a silent fallback to
+                    // whatever other evidence existed.
+                    'userid'            => $attempt->userid,
                     'slot'              => $slot,
                     'confidence'        => (int)$confidence,
                     'timecreated'       => time(),

@@ -122,29 +122,11 @@ if (!$feedbackrow) {
     exit;
 }
 
-// A teacher who reviews this feedback and flags it as wrong has to actually
-// change what the student sees, otherwise "all AI outputs remain subject to
-// teacher review and override" is only half true - there was review, and
-// there was flagging, and neither suppressed the output. Flagged feedback is
-// withheld rather than shown with a warning: the whole point of the flag is
-// that a teacher judged the content incorrect, and leaving incorrect
-// remediation on screen next to a caveat still teaches it.
-if (!empty($feedbackrow->flagged)) {
-    echo html_writer::start_div('al-page', ['style' => 'max-width: 800px;']);
-    echo $pagetitle;
-    echo html_writer::div(
-        html_writer::div('<i class="fa fa-user-clock" aria-hidden="true"></i>', 'al-empty__icon') .
-        html_writer::div('This feedback is being reviewed by your teacher', 'al-empty__title') .
-        html_writer::div('Your teacher flagged something in the automatically generated feedback '
-            . 'for this attempt, so it is not being shown. Your quiz result and grade are '
-            . 'unaffected. Ask your teacher if you need guidance on this attempt.', 'al-empty__sub'),
-        'al-card al-empty'
-    );
-    echo $pageactions;
-    echo html_writer::end_div();
-    echo $OUTPUT->footer();
-    exit;
-}
+// Feedback is no longer withheld from students. Flagging was removed from the
+// review queue: it hid the AI's prose but left the mastery and pathway the AI
+// had decided untouched, and the teacher's note never reached the student - so
+// a flagged learner saw a page telling them to go and ask, with nothing they
+// could act on. A teacher note and a grade override, both visible, replace it.
 
 $feedback = json_decode($feedbackrow->feedback_json, true);
 

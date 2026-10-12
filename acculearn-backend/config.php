@@ -60,6 +60,12 @@ $env = load_env(__DIR__ . '/.env');
 // instead of "warnings printed into the page".
 foreach ([
     'OPENAI_API_KEY',
+    // Separate from OPENAI_API_KEY and optional. OpenAI's usage and cost
+    // endpoints live under /v1/organization/ and reject project keys
+    // (sk-proj-*) with 403 - they require an organization ADMIN key
+    // (sk-admin-*), which only an org owner can mint. Absent, the AI usage
+    // page degrades to AccuLearn's own request counts instead of failing.
+    'OPENAI_ADMIN_KEY',
     'MOODLE_TOKEN',
     'DB_HOST',
     'DB_NAME',

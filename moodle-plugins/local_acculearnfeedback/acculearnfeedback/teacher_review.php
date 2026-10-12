@@ -67,10 +67,10 @@ if (data_submitted() && confirm_sesskey()) {
         redirect($PAGE->url, 'Grade overridden successfully.', null, \core\output\notification::NOTIFY_SUCCESS);
     }
 
-    // Default: AI-output review action ('approve' or 'flag').
+    // Default: AI-output review action. Approve is the only one.
     $type = required_param('type', PARAM_ALPHA); // 'feedback' or 'track'
     $id = required_param('id', PARAM_INT);
-    $action = required_param('reviewaction', PARAM_ALPHA); // 'approve' or 'flag'
+    $action = required_param('reviewaction', PARAM_ALPHA); // 'approve'
     $note = optional_param('teachernote', '', PARAM_TEXT);
 
     // Both values must be validated against an explicit allowlist, not
@@ -83,18 +83,27 @@ if (data_submitted() && confirm_sesskey()) {
     if (!in_array($type, ['feedback', 'track'], true)) {
         redirect($PAGE->url, 'Unrecognised review target.', null, \core\output\notification::NOTIFY_ERROR);
     }
-    if (!in_array($action, ['approve', 'flag'], true)) {
+    // Approve is the only review action. Flagging was removed: it withheld the
+    // AI output from the student but changed nothing they could act on - the
+    // teacher's note never reached them, and the mastery and pathway the AI had
+    // decided stayed exactly as they were. A note plus a grade override plus
+    // approve does everything flagging did, visibly, and without leaving a
+    // student staring at a withheld page they cannot resolve themselves.
+    if ($action !== 'approve') {
         redirect($PAGE->url, 'Unrecognised review action.', null, \core\output\notification::NOTIFY_ERROR);
     }
 
     $table = ($type === 'feedback') ? 'acculearn_feedback' : 'acculearn_learning_tracks';
-    $flagged = ($action === 'flag') ? 1 : 0;
-
     $targetuserid = $DB->get_field_sql("SELECT userid FROM $table WHERE id = ?", [$id]);
 
+    // flagged is written as 0 rather than left alone, so approving a record
+    // that carried a legacy flag also clears it. The column itself is kept:
+    // dropping it would need a schema upgrade, and acculearn_feedback /
+    // acculearn_learning_tracks are the unprefixed legacy tables Moodle's
+    // upgrade machinery does not manage.
     $DB->execute(
-        "UPDATE $table SET reviewed = 1, reviewed_by = ?, reviewed_at = ?, teacher_note = ?, flagged = ? WHERE id = ?",
-        [$USER->id, time(), $note, $flagged, $id]
+        "UPDATE $table SET reviewed = 1, reviewed_by = ?, reviewed_at = ?, teacher_note = ?, flagged = 0 WHERE id = ?",
+        [$USER->id, time(), $note, $id]
     );
 
     if ($targetuserid) {
@@ -240,8 +249,8 @@ if ($tab === 'feedback') {
 
     foreach ($rows as $r) {
         $feedback = json_decode($r->feedback_json, true);
-        $statustone = $r->flagged ? 'flagged' : ($r->reviewed ? 'approved' : 'pending');
-        $statuslabel = $r->flagged ? 'Flagged' : ($r->reviewed ? 'Approved' : 'Pending review');
+        $statustone = $r->reviewed ? 'approved' : 'pending';
+        $statuslabel = $r->reviewed ? 'Approved' : 'Pending review';
 
         $displayname = $revealnames
             ? s($r->firstname . ' ' . $r->lastname)
@@ -335,8 +344,7 @@ if ($tab === 'feedback') {
             echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'type', 'value' => 'feedback']);
             echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'id', 'value' => $r->id]);
             echo html_writer::empty_tag('input', ['type' => 'text', 'name' => 'teachernote', 'placeholder' => 'Optional note...', 'style' => 'width:60%; margin-right:8px;']);
-            echo html_writer::empty_tag('input', ['type' => 'submit', 'name' => 'reviewaction', 'value' => 'approve', 'class' => 'al-btn al-btn-sm al-btn-success', 'style' => 'margin-right:4px;']);
-            echo html_writer::empty_tag('input', ['type' => 'submit', 'name' => 'reviewaction', 'value' => 'flag', 'class' => 'al-btn al-btn-sm al-btn-danger']);
+            echo html_writer::empty_tag('input', ['type' => 'submit', 'name' => 'reviewaction', 'value' => 'approve', 'class' => 'al-btn al-btn-sm al-btn-success']);
             echo html_writer::end_tag('form');
         }
 
@@ -374,8 +382,8 @@ if ($tab === 'feedback') {
             continue;
         }
         $narrative = $track['narrative'] ?? [];
-        $statustone = $r->flagged ? 'flagged' : ($r->reviewed ? 'approved' : 'pending');
-        $statuslabel = $r->flagged ? 'Flagged' : ($r->reviewed ? 'Approved' : 'Pending review');
+        $statustone = $r->reviewed ? 'approved' : 'pending';
+        $statuslabel = $r->reviewed ? 'Approved' : 'Pending review';
 
         $displayname = $revealnames
             ? s($r->firstname . ' ' . $r->lastname)
@@ -449,8 +457,7 @@ if ($tab === 'feedback') {
             echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'type', 'value' => 'track']);
             echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'id', 'value' => $r->id]);
             echo html_writer::empty_tag('input', ['type' => 'text', 'name' => 'teachernote', 'placeholder' => 'Optional note...', 'style' => 'width:60%; margin-right:8px;']);
-            echo html_writer::empty_tag('input', ['type' => 'submit', 'name' => 'reviewaction', 'value' => 'approve', 'class' => 'al-btn al-btn-sm al-btn-success', 'style' => 'margin-right:4px;']);
-            echo html_writer::empty_tag('input', ['type' => 'submit', 'name' => 'reviewaction', 'value' => 'flag', 'class' => 'al-btn al-btn-sm al-btn-danger']);
+            echo html_writer::empty_tag('input', ['type' => 'submit', 'name' => 'reviewaction', 'value' => 'approve', 'class' => 'al-btn al-btn-sm al-btn-success']);
             echo html_writer::end_tag('form');
         }
 

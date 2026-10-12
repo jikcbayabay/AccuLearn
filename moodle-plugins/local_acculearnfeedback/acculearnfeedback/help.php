@@ -145,6 +145,31 @@ carry &mdash; ask an administrator if you need it for a specific case.</p>
 as an <em>overridden</em> value, which stops the quiz module recalculating over the top of it
 later. Use it when the quiz score does not reflect what the student actually demonstrated.</p>
 
+<h4>Quiz questions</h4>
+<p><strong>Quiz Questions</strong> in the bottom toolbar shows, for each quiz, its three
+question pools: Easy, Medium and Hard. Every attempt picks at random from them. A formative
+quiz takes 2 Easy, 2 Medium and 1 Hard question; a summative quiz takes 10 of each and has a
+50-minute time limit.</p>
+<ul>
+    <li><strong>Add question</strong> adds a new multiple-choice question to that pool. It can
+    appear from the student's next attempt.</li>
+    <li><strong>View &amp; edit</strong> opens the pool to edit, preview or delete its questions,
+    or to move one to another difficulty (tick it, then <em>Move to</em>).</li>
+    <li>To check how many questions a quiz has, look under the quiz's name (&ldquo;25 questions in
+    the bank&rdquo;) and at the <em>Questions in pool</em> column. The total for the whole
+    competency is shown under its heading.</li>
+    <li>A pool marked <strong>Needs more</strong> is smaller than it should be. Until you add
+    questions, the quiz takes the missing ones from the neighbouring pool.</li>
+</ul>
+<p>Editing a question never changes answers students have already given. New and edited
+questions count towards each student's mastery automatically.</p>
+
+<h4>Activity completion</h4>
+<p><strong>Activity Completion</strong> in the bottom toolbar shows, per student, which lessons and
+quizzes are done (&#10003;) and which are not (&#10007;). A lesson counts once the student finishes it;
+a quiz counts once the student submits an attempt. Pick a course for the activity-by-activity view.
+Students appear under their pseudonyms here too.</p>
+
 <h4>Confidence report</h4>
 <p>The confidence report exports the raw answer-and-confidence data per quiz as CSV, for when
 you want to look at the pattern yourself rather than through the computed indices.</p>

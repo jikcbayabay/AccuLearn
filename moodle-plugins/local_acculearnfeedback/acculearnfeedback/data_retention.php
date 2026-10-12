@@ -11,7 +11,7 @@ $context = context_system::instance();
 // same audience as admin_sequence.php.
 require_capability('local/acculearnfeedback:managesequence', $context);
 
-// Deliberately NOT a scheduled/automatic purge (see CLAUDE.md guardrail on
+// Deliberately NOT a scheduled/automatic purge (see the project guardrail on
 // destructive DB operations without explicit confirmation). This page only
 // ever reports what is past the retention window; deleting a category
 // requires an explicit, per-category form submission with sesskey + an

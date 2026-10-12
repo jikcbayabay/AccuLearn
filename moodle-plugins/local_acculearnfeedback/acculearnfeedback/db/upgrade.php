@@ -127,5 +127,76 @@ function xmldb_local_acculearnfeedback_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026081002, 'local', 'acculearnfeedback');
     }
 
+    if ($oldversion < 2026100500) {
+        // Teachers can now add and edit quiz questions (the Quiz Questions
+        // page, quiz_questions.php). The editing itself happens in Moodle's
+        // question bank, so the AccuLearn teacher role needs the question
+        // capabilities as well as the new page capability. Granted at system
+        // context because that is where the role is assigned, and the banks
+        // live in front-page module contexts no course enrolment reaches.
+        //
+        // Deliberately NOT granted: moodle/question:managecategory. Teachers
+        // must not be able to rename or delete the Easy/Medium/Hard pool
+        // categories, which the quizzes' random slots are wired to.
+        //
+        // Moodle only registers a plugin's new capabilities after this
+        // function returns, and assign_capability() refuses one it does not
+        // know yet - so register db/access.php first.
+        update_capabilities('local_acculearnfeedback');
+        $role = $DB->get_record('role', ['shortname' => 'acculearnteacher']);
+        if ($role) {
+            $syscontext = context_system::instance();
+            foreach ([
+                'local/acculearnfeedback:managequizquestions',
+                'moodle/question:add',
+                'moodle/question:viewall',
+                'moodle/question:editall',
+                'moodle/question:moveall',
+                'moodle/question:useall',
+                'mod/qbank:view',
+            ] as $capability) {
+                assign_capability($capability, CAP_ALLOW, $role->id, $syscontext->id, true);
+            }
+            $syscontext->mark_dirty();
+        }
+
+        upgrade_plugin_savepoint(true, 2026100500, 'local', 'acculearnfeedback');
+    }
+
+    if ($oldversion < 2026100501) {
+        // Quiz Questions is for teachers only. 2026100500 handed the page
+        // capability to the manager-archetype roles (manager, superadmin) by
+        // default; take it back off every role that is not a teacher role.
+        $syscontext = context_system::instance();
+        $roles = $DB->get_records_sql("
+            SELECT DISTINCT r.id, r.shortname
+              FROM {role} r
+              JOIN {role_capabilities} rc ON rc.roleid = r.id
+             WHERE rc.capability = ?
+               AND r.shortname NOT IN ('acculearnteacher', 'editingteacher')",
+            ['local/acculearnfeedback:managequizquestions']);
+        foreach ($roles as $role) {
+            unassign_capability('local/acculearnfeedback:managequizquestions', $role->id);
+        }
+        $syscontext->mark_dirty();
+
+        upgrade_plugin_savepoint(true, 2026100501, 'local', 'acculearnfeedback');
+    }
+
+    if ($oldversion < 2026100502) {
+        // Activity Completion moves from the admin roles to the teachers:
+        // grant the new page capability to the AccuLearn teacher role (it is
+        // registered first - see 2026100500 for why).
+        update_capabilities('local_acculearnfeedback');
+        $syscontext = context_system::instance();
+        $role = $DB->get_record('role', ['shortname' => 'acculearnteacher']);
+        if ($role) {
+            assign_capability('local/acculearnfeedback:viewcompletion', CAP_ALLOW, $role->id, $syscontext->id, true);
+        }
+        $syscontext->mark_dirty();
+
+        upgrade_plugin_savepoint(true, 2026100502, 'local', 'acculearnfeedback');
+    }
+
     return true;
 }

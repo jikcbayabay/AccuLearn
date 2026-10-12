@@ -96,7 +96,8 @@ class TrackEngine {
         if (MasteryEngine::DECISION_MODE === 'ai') {
             try {
                 $engine = new DecisionEngine();
-                $decided = $engine->decide($evidence, $studentName, $source);
+                $decided = $engine->decide($evidence, $studentName, $source,
+                    $this->mastery->formulaDecisions($userid, $source));
                 $competencies = $decided['competencies'];
                 $narrative = $decided['narrative'];
                 $decision['by'] = 'ai';
